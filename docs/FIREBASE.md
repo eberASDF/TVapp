@@ -24,7 +24,7 @@ Desde `C:\Users\eberh\TVapp`, ejecuta:
 node scripts/new-employee.mjs
 ```
 
-Escribe el nombre exacto que se usará en el móvil y una clave de al menos 8 caracteres. El script no muestra la clave y entrega el ID del documento y el hash SHA-256. En **Firebase Console → Firestore Database → Datos**, crea la colección `empleados` y un documento con ese ID. Agrega exactamente:
+Escribe el nombre exacto que se usará en el móvil (máximo 15 caracteres) y una clave de 6 a 15 caracteres. El script no muestra la clave y entrega el ID del documento y el hash SHA-256. En **Firebase Console → Firestore Database → Datos**, crea la colección `empleados` y un documento con ese ID. Agrega exactamente:
 
 | Campo | Tipo | Valor |
 | --- | --- | --- |

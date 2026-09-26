@@ -62,6 +62,7 @@ export function Field({
   secure = false,
   placeholder = "",
   keyboard = "default",
+  maxLength,
 }: {
   label: string;
   value: string;
@@ -69,6 +70,7 @@ export function Field({
   secure?: boolean;
   placeholder?: string;
   keyboard?: "default" | "email-address" | "number-pad";
+  maxLength?: number;
 }) {
   return (
     <View style={{ gap: 8 }}>
@@ -81,6 +83,7 @@ export function Field({
         autoCapitalize="none"
         autoCorrect={false}
         keyboardType={keyboard}
+        maxLength={maxLength}
         placeholder={placeholder}
         placeholderTextColor={colors.muted}
         style={ui.input}

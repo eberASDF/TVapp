@@ -5,12 +5,12 @@ const io = createInterface({ input: process.stdin, output: process.stdout });
 const nombre = (await io.question("Nombre completo del empleado ficticio: ")).trim().replace(/\s+/g, " ");
 io.close();
 const id = nombre.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-if (!nombre || !id || nombre.length > 80 || !process.stdin.isTTY) {
-  process.stderr.write("Usa un terminal interactivo y un nombre de hasta 80 caracteres.\n");
+if (!nombre || !id || nombre.length > 15 || !process.stdin.isTTY) {
+  process.stderr.write("Usa un terminal interactivo y un nombre de hasta 15 caracteres.\n");
   process.exit(1);
 }
 
-process.stdout.write("Clave (mínimo 8 caracteres; no se muestra): ");
+process.stdout.write("Clave (6 a 15 caracteres; no se muestra): ");
 process.stdin.setRawMode(true);
 process.stdin.resume();
 const clave = await new Promise((resolve, reject) => {
@@ -39,8 +39,8 @@ const clave = await new Promise((resolve, reject) => {
   process.stdin.setRawMode(false);
   process.stdin.pause();
 });
-if (clave.length < 8) {
-  process.stderr.write("La clave debe tener al menos 8 caracteres.\n");
+if (clave.length < 6 || clave.length > 15) {
+  process.stderr.write("La clave debe tener entre 6 y 15 caracteres.\n");
   process.exit(1);
 }
 const claveHash = createHash("sha256").update(`tvapp:v1:${id}:${clave}`).digest("hex");

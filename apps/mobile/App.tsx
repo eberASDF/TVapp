@@ -150,8 +150,8 @@ function Main() {
           <View style={[ui.card, styles.modalCard]}>
             <Text style={styles.section}>Identificar empleado</Text>
             <Text style={ui.description}>Escribe el nombre y la clave registrados en Firestore.</Text>
-            <Field label="Nombre" value={nombre} onChange={setNombre} placeholder="Nombre completo" />
-            <Field label="Clave" value={clave} onChange={setClave} secure />
+            <Field label="Nombre" value={nombre} onChange={setNombre} placeholder="Nombre completo" maxLength={15} />
+            <Field label="Clave" value={clave} onChange={setClave} secure maxLength={15} />
             <Action label={busy ? "Verificando…" : `Confirmar ${pendingType}`} onPress={confirmIdentity} disabled={busy || !nombre.trim() || !clave} />
             <Action label="Cancelar" secondary onPress={() => { setClave(""); setPendingType(null); }} disabled={busy} />
           </View>
