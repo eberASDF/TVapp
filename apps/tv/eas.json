@@ -1,0 +1,18 @@
+{
+  "build": {
+    "preview": {
+      "distribution": "internal",
+      "env": {
+        "EXPO_TV": "1"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "production": {
+      "env": {
+        "EXPO_TV": "1"
+      }
+    }
+  }
+}

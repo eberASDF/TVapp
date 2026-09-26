@@ -1,0 +1,36 @@
+{
+  "name": "tvapp",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "mobile": "npm run start -w @tvapp/mobile",
+    "tv": "npm run start -w @tvapp/tv",
+    "android:mobile": "npm run android -w @tvapp/mobile",
+    "android:tv": "npm run android -w @tvapp/tv",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "node --test tests/domain.test.mjs tests/tv-speech.test.mjs tests/mobile-biometrics.test.mjs",
+    "check": "npm run typecheck && npm test",
+    "test:rules": "node --test tests/firestore.rules.test.mjs",
+    "emulators": "firebase emulators:start --project demo-tvapp --only firestore",
+    "test:emulators": "npm run test:rules"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.0",
+    "@types/node": "^22.0.0",
+    "@types/react": "~19.2.2",
+    "firebase-tools": "^15.30.2",
+    "prettier": "^3.6.2",
+    "typescript": "~5.9.2"
+  },
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "dependencies": {
+    "react": "19.2.3",
+    "react-native": "npm:react-native-tvos@0.86.3-0"
+  }
+}

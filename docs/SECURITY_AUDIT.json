@@ -1,0 +1,24 @@
+{
+  "score": 2,
+  "summary": "Prototipo escolar con registros ficticios. Las reglas impiden leer hashes, alterar asistencias y registrar con una clave incorrecta; no pueden demostrar biometría local ni limitar intentos sin otro servicio.",
+  "findings": [
+    {
+      "check": "Business Logic vs. Rules",
+      "severity": "major",
+      "issue": "Un cliente modificado que conozca nombre y clave puede omitir el sensor y crear una asistencia válida.",
+      "recommendation": "Antes de usar datos reales, agregar identidad y verificación del dispositivo mediante un servicio confiable."
+    },
+    {
+      "check": "Authority Source",
+      "severity": "major",
+      "issue": "Sin Authentication ni backend no existe un límite confiable de intentos de clave; un atacante puede probar claves contra las reglas.",
+      "recommendation": "Usar solo claves largas para datos ficticios. En producción, introducir autenticación y control de intentos en servidor."
+    },
+    {
+      "check": "Public Read",
+      "severity": "moderate",
+      "issue": "La TV sin identidad requiere lectura pública de asistencias, autorizada únicamente para empleados ficticios.",
+      "recommendation": "No cargar nombres ni asistencias reales en este proyecto escolar."
+    }
+  ]
+}

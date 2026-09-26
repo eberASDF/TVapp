@@ -1,0 +1,86 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function employeePath(id) { return /databases/$(database)/documents/empleados/$(id); }
+    function attendancePath(id) { return /databases/$(database)/documents/asistencias/$(id); }
+    function proofPath(id) { return /databases/$(database)/documents/comprobaciones/$(id); }
+    function localTime() { return request.time + duration.value(-7, 'h'); }
+    function localDay() {
+      return localTime().year() * 10000 + localTime().month() * 100 + localTime().day();
+    }
+    function recordId(employeeId, tipo) {
+      return employeeId + '_' + string(localDay()) + '_' + tipo;
+    }
+    function validEmployee(id, nombre, claveHash) {
+      return exists(employeePath(id))
+        && get(employeePath(id)).data.activo == true
+        && get(employeePath(id)).data.nombre == nombre
+        && get(employeePath(id)).data.claveHash == claveHash;
+    }
+    function validProof(id) {
+      let data = request.resource.data;
+      return data.keys().hasAll(['empleadoId', 'nombre', 'tipo', 'claveHash'])
+        && data.keys().hasOnly(['empleadoId', 'nombre', 'tipo', 'claveHash'])
+        && data.empleadoId is string
+        && data.empleadoId.size() >= 1
+        && data.empleadoId.size() <= 80
+        && data.empleadoId.matches('^[a-z0-9]+(-[a-z0-9]+)*$')
+        && data.nombre is string
+        && data.nombre.size() >= 1
+        && data.nombre.size() <= 80
+        && data.tipo in ['entrada', 'salida']
+        && data.claveHash is string
+        && data.claveHash.matches('^[a-f0-9]{64}$')
+        && id == recordId(data.empleadoId, data.tipo)
+        && validEmployee(data.empleadoId, data.nombre, data.claveHash)
+        && !exists(attendancePath(id))
+        && existsAfter(attendancePath(id))
+        && getAfter(attendancePath(id)).data.empleadoId == data.empleadoId
+        && getAfter(attendancePath(id)).data.nombre == data.nombre
+        && getAfter(attendancePath(id)).data.tipo == data.tipo;
+    }
+    function validAttendance(id) {
+      let data = request.resource.data;
+      return data.keys().hasAll(['empleadoId', 'nombre', 'tipo', 'timestamp', 'dia', 'zonaHoraria', 'entradaEsperada', 'salidaEsperada', 'toleranciaMinutos'])
+        && data.keys().hasOnly(['empleadoId', 'nombre', 'tipo', 'timestamp', 'dia', 'zonaHoraria', 'entradaEsperada', 'salidaEsperada', 'toleranciaMinutos'])
+        && data.empleadoId is string
+        && data.empleadoId.size() >= 1
+        && data.empleadoId.size() <= 80
+        && data.empleadoId.matches('^[a-z0-9]+(-[a-z0-9]+)*$')
+        && data.nombre is string
+        && data.nombre.size() >= 1
+        && data.nombre.size() <= 80
+        && data.tipo in ['entrada', 'salida']
+        && id == recordId(data.empleadoId, data.tipo)
+        && data.timestamp == request.time
+        && data.dia == localDay()
+        && data.zonaHoraria == 'America/Phoenix'
+        && data.entradaEsperada == '07:00'
+        && data.salidaEsperada == '15:00'
+        && data.toleranciaMinutos == 5
+        && !exists(proofPath(id))
+        && existsAfter(proofPath(id))
+        && getAfter(proofPath(id)).data.empleadoId == data.empleadoId
+        && getAfter(proofPath(id)).data.nombre == data.nombre
+        && getAfter(proofPath(id)).data.tipo == data.tipo
+        && validEmployee(data.empleadoId, data.nombre, getAfter(proofPath(id)).data.claveHash)
+        && (data.tipo == 'entrada'
+          || exists(attendancePath(recordId(data.empleadoId, 'entrada'))));
+    }
+    match /empleados/{id} { allow read, write: if false; }
+    match /comprobaciones/{id} {
+      allow create: if validProof(id);
+      allow read, update, delete: if false;
+    }
+    match /asistencias/{id} {
+      allow get, list: if true;
+      allow create: if validAttendance(id);
+      allow update, delete: if false;
+    }
+    match /tablero/{id} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /{document=**} { allow read, write: if false; }
+  }
+}

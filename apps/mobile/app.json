@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "TVapp Checador",
+    "slug": "tvapp-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "android": {
+      "package": "com.eberasdf.tvapp.mobile"
+    },
+    "ios": {
+      "bundleIdentifier": "com.eberasdf.tvapp.mobile",
+      "supportsTablet": true
+    },
+    "plugins": [
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "TVapp usa Face ID para autorizar tu entrada o salida."
+        }
+      ]
+    ],
+    "web": {
+      "name": "TVapp · Checador"
+    }
+  }
+}

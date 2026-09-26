@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "TVapp Display",
+    "slug": "tvapp-display",
+    "version": "1.0.0",
+    "orientation": "landscape",
+    "userInterfaceStyle": "dark",
+    "platforms": ["android", "web"],
+    "android": {
+      "package": "com.eberasdf.tvapp.display"
+    },
+    "plugins": [
+      [
+        "@react-native-tvos/config-tv",
+        {
+          "isTV": true,
+          "androidTVRequired": true
+        }
+      ],
+      "expo-video",
+      "./plugins/withTtsQueries"
+    ],
+    "web": {
+      "name": "TVapp · Display"
+    }
+  }
+}

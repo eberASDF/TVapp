@@ -1,0 +1,32 @@
+{
+  "name": "@tvapp/tv",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.ts",
+  "scripts": {
+    "start": "expo start --go --port 8082",
+    "android": "expo run:android --port 8082",
+    "web": "expo start --web --port 8082",
+    "typecheck": "tsc --noEmit",
+    "export:android": "expo export --platform android"
+  },
+  "dependencies": {
+    "@tvapp/shared": "*",
+    "expo": "~57.0.0",
+    "expo-video": "~57.0.0",
+    "expo-keep-awake": "~57.0.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "npm:react-native-tvos@0.86.3-0",
+    "react-native-web": "~0.21.0",
+    "react-native-tts": "4.1.1",
+    "@react-native-tvos/config-tv": "0.1.6"
+  },
+  "expo": {
+    "install": {
+      "exclude": [
+        "react-native"
+      ]
+    }
+  }
+}

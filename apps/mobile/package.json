@@ -1,0 +1,32 @@
+{
+  "name": "@tvapp/mobile",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.ts",
+  "scripts": {
+    "start": "expo start --go",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web --port 8081",
+    "typecheck": "tsc --noEmit",
+    "export:android": "expo export --platform android"
+  },
+  "dependencies": {
+    "@tvapp/shared": "*",
+    "expo": "~57.0.0",
+    "expo-local-authentication": "~57.0.0",
+    "expo-crypto": "~57.0.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "npm:react-native-tvos@0.86.3-0",
+    "react-native-web": "~0.21.0",
+    "react-native-safe-area-context": "~5.7.0"
+  },
+  "expo": {
+    "install": {
+      "exclude": [
+        "react-native"
+      ]
+    }
+  }
+}
