@@ -68,10 +68,11 @@ for (const error of ["user_cancel", "authentication_failed", "lockout"]) {
 
 for (const [name, options] of [
   ["browser", { os: "web" }],
+  ["face-only device", { overrides: { supportedAuthenticationTypesAsync: async () => [2] } }],
   ["no sensor", { overrides: { hasHardwareAsync: async () => false } }],
   ["no enrollment", { overrides: { isEnrolledAsync: async () => false } }],
   ["weak face unlock", { overrides: { getEnrolledLevelAsync: async () => 2 } }],
-  ["Face ID in Expo Go", { os: "ios", overrides: { supportedAuthenticationTypesAsync: async () => [2] } }],
+  ["face-only iPhone", { os: "ios", overrides: { supportedAuthenticationTypesAsync: async () => [2] } }],
 ]) {
   test(`${name}: reject without prompting or recording`, async () => {
     const { confirm, calls } = setup(options);

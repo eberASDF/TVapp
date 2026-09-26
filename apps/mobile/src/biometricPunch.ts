@@ -1,5 +1,4 @@
 import { Platform } from "react-native";
-import { isRunningInExpoGo } from "expo";
 import * as Biometrics from "expo-local-authentication";
 
 export async function withBiometricConfirmation<T>(
@@ -9,12 +8,8 @@ export async function withBiometricConfirmation<T>(
   if (Platform.OS === "web")
     throw new Error("Abre el checador en Expo Go en tu Android para usar la huella.");
   const types = await Biometrics.supportedAuthenticationTypesAsync();
-  if (
-    Platform.OS === "ios" &&
-    isRunningInExpoGo() &&
-    types.includes(Biometrics.AuthenticationType.FACIAL_RECOGNITION)
-  )
-    throw new Error("Face ID requiere una compilación propia en iPhone. Para esta prueba usa la huella en Android.");
+  if (!types.includes(Biometrics.AuthenticationType.FINGERPRINT))
+    throw new Error("Este dispositivo no tiene lector de huella disponible.");
   if (!(await Biometrics.hasHardwareAsync()))
     throw new Error("Este dispositivo no tiene un sensor biométrico disponible.");
   if (!(await Biometrics.isEnrolledAsync()))
