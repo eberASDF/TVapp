@@ -34,7 +34,7 @@ Escribe el nombre exacto que se usará en el móvil y una clave de al menos 8 ca
 
 No guardes el campo `clave` en Firestore. Para desactivar un empleado, cambia `activo` a `false` en la consola. Los nombres deben ser únicos después de quitar acentos y convertir espacios en guiones; por ejemplo, `Ana López` usa el ID `ana-lopez`. Si cambias el nombre, genera un nuevo ID y hash.
 
-No necesitas crear `asistencias`, `comprobaciones` ni un documento de horario: el primer registro crea las dos primeras colecciones de manera atómica, y el horario escolar está fijado en el código y las reglas. `comprobaciones` es privado; contiene el hash presentado en cada intento correcto. `asistencias` contiene `{empleadoId, nombre, tipo, timestamp, dia, zonaHoraria, entradaEsperada, salidaEsperada, toleranciaMinutos}`. El estado y minutos de retardo se calculan desde el timestamp del servidor y ese horario guardado.
+`config/horario` ya existe en `tvapp-951f9` con 07:00–15:00, cinco minutos, `America/Phoenix` y desfase UTC −7. Refleja el horario fijado en el código y las reglas; editar solo el documento no cambia el cálculo. No necesitas crear `asistencias` ni `comprobaciones`: el primer registro crea ambas colecciones de manera atómica. `comprobaciones` es privado; contiene el hash presentado en cada intento correcto. `asistencias` contiene `{empleadoId, nombre, tipo, timestamp, dia, zonaHoraria, entradaEsperada, salidaEsperada, toleranciaMinutos}`. El estado y minutos de retardo se calculan desde el timestamp del servidor y ese horario guardado.
 
 Opcionalmente, crea un aviso de texto en `tablero/{id}` con `titulo`, `texto`, `tipo: "aviso"`, `storagePath: ""`, `activo: true`, `orden: 0` y `duracionSegundos: 10`. La TV muestra los registros aunque no haya avisos.
 
