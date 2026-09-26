@@ -48,7 +48,7 @@ $env:Path = "$env:JAVA_HOME\bin;$env:Path"
 .\node_modules\.bin\firebase.cmd emulators:exec --project demo-tvapp --only firestore "node --test tests/firestore.rules.test.mjs"
 ```
 
-La suite prueba clave incorrecta, perfil privado, transacción real de entrada/salida, duplicados, salida sin entrada, alteraciones de campos y la lectura en vivo con `onSnapshot`. Usa el proyecto de demostración; no toca datos reales. Tras pasarla, publica solo las reglas e índices de Firestore:
+La suite prueba clave incorrecta, perfil privado, transacción real de entrada/salida, duplicados, salida sin entrada, alteraciones de campos, borrado de historial y la lectura en vivo con `onSnapshot`. Usa el proyecto de demostración; no toca datos reales. Tras pasarla, publica solo las reglas e índices de Firestore:
 
 ```powershell
 .\node_modules\.bin\firebase.cmd deploy --project tvapp-951f9 --only firestore
@@ -56,4 +56,4 @@ La suite prueba clave incorrecta, perfil privado, transacción real de entrada/s
 
 El móvil usa `serverTimestamp()` y la TV filtra por día local, ordena por timestamp y muestra hasta 100 registros. El cálculo considera a tiempo hasta las 07:05:00; a partir de las 07:05:01 se marca retardo. La salida anterior a las 15:00 se marca anticipada.
 
-Las reglas protegen perfiles, claves y escrituras de asistencia, pero sin Authentication ni servidor no pueden comprobar remotamente que se usó biometría ni imponer un límite de intentos de clave. La biometría sigue siendo una condición de la app móvil oficial. Úsalo solo con datos ficticios.
+Las reglas protegen perfiles, claves y escrituras de asistencia. Para esta demo, el borrado de `asistencias` y `comprobaciones` es público, por lo que cualquier cliente con la configuración del proyecto puede limpiar el historial. Sin Authentication ni servidor, Firestore no puede comprobar remotamente que se usó biometría ni imponer un límite de intentos de clave. La biometría sigue siendo una condición de la app móvil oficial. Úsalo solo con datos ficticios.

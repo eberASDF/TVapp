@@ -1,29 +1,34 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
+  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { Camera, CameraView } from "expo-camera";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import {
   PunchType,
+  clearAttendanceHistory,
   configurationError,
   defaultSchedule,
   readableError,
   registerAttendance,
   services,
   timeLabel,
-  useAttendance,
   useClock,
 } from "@tvapp/shared";
-import { Action, Badge, Field, Message, colors, ui } from "@tvapp/shared/src/ui";
+import { Action, Field, Message, colors, ui } from "@tvapp/shared/src/ui";
 import { withBiometricConfirmation } from "./src/biometricPunch";
 import { employeeCredential } from "./src/identity";
+import { Capture, clearCaptures, loadCaptures, saveCapture } from "./src/captures";
 
 export default function App() {
   return (
@@ -38,17 +43,22 @@ export default function App() {
 function Main() {
   const schedule = defaultSchedule;
   const now = useClock();
-  const [selected, setSelected] = useState<{ id: string; nombre: string } | null>(null);
+  const [screen, setScreen] = useState<"home" | "captures">("home");
+  const [captures, setCaptures] = useState<Capture[]>([]);
   const [pendingType, setPendingType] = useState<PunchType | null>(null);
   const [nombre, setNombre] = useState("");
   const [clave, setClave] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [cameraActive, setCameraActive] = useState(false);
   const punching = useRef(false);
-  const live = useAttendance(!!selected, schedule, selected?.id);
-  const entrada = live.rows.find((row) => row.tipo === "entrada");
-  const salida = live.rows.find((row) => row.tipo === "salida");
+  const cameraRef = useRef<CameraView>(null);
+  const cameraAction = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    void loadCaptures().then(setCaptures).catch((cause) => setError(readableError(cause)));
+  }, []);
 
   async function startPunch(tipo: PunchType) {
     if (punching.current || !services) return;
@@ -58,6 +68,8 @@ function Main() {
     setMessage("");
     try {
       await withBiometricConfirmation(tipo, async () => true);
+      setNombre("");
+      setClave("");
       setPendingType(tipo);
     } catch (e) {
       setError(readableError(e));
@@ -65,6 +77,34 @@ function Main() {
       punching.current = false;
       setBusy(false);
     }
+  }
+
+  async function takePhoto(): Promise<string> {
+    const permission = await Camera.requestCameraPermissionsAsync();
+    if (!permission.granted) throw new Error("Permiso de cámara denegado.");
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        cameraAction.current = null;
+        setCameraActive(false);
+        reject(new Error("La cámara no estuvo disponible."));
+      }, 12000);
+      cameraAction.current = () => {
+        cameraAction.current = null;
+        void (async () => {
+          try {
+            const photo = await cameraRef.current?.takePictureAsync({ quality: 0.6 });
+            if (!photo?.uri) throw new Error("No se pudo tomar la foto.");
+            resolve(photo.uri);
+          } catch (cause) {
+            reject(cause);
+          } finally {
+            clearTimeout(timeout);
+            setCameraActive(false);
+          }
+        })();
+      };
+      setCameraActive(true);
+    });
   }
 
   async function confirmIdentity() {
@@ -75,15 +115,48 @@ function Main() {
     try {
       const employee = await employeeCredential(nombre, clave);
       const result = await registerAttendance(employee, tipo);
-      setSelected({ id: employee.id, nombre: employee.nombre });
-      setMessage(
-        `${tipo === "entrada" ? "Entrada" : "Salida"} registrada a las ${timeLabel(result.timestamp, schedule.zonaHoraria)}.${result.minutosRetardo ? ` Retardo: ${result.minutosRetardo} min.` : ""}`,
-      );
+      setPendingType(null);
+      setNombre("");
+      setClave("");
+      setMessage(tipo === "entrada" ? "Bienvenido a tu turno" : "Gracias por completar tu turno");
+      try {
+        const uri = await takePhoto();
+        const capture = await saveCapture(result, uri);
+        setCaptures((previous) => [capture, ...previous.filter((item) => item.id !== capture.id)]);
+      } catch {
+        setError("La asistencia se registró, pero no se pudo guardar la foto.");
+      }
     } catch (e) {
       setError(readableError(e));
     } finally {
+      setNombre("");
       setClave("");
       setPendingType(null);
+      setBusy(false);
+    }
+  }
+
+  function confirmClear() {
+    Alert.alert("Limpiar historial", "Se borrarán todas las asistencias de Firestore y las capturas de este teléfono.", [
+      { text: "Cancelar", style: "cancel" },
+      { text: "Eliminar todo", style: "destructive", onPress: () => { void clearHistory(); } },
+    ]);
+  }
+
+  async function clearHistory() {
+    if (busy) return;
+    setBusy(true);
+    setError("");
+    setMessage("");
+    try {
+      await clearAttendanceHistory();
+      clearCaptures();
+      setCaptures([]);
+      setScreen("home");
+      setMessage("Historial limpiado.");
+    } catch (cause) {
+      setError(readableError(cause));
+    } finally {
       setBusy(false);
     }
   }
@@ -92,89 +165,92 @@ function Main() {
     <>
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.header}>
-          <View>
-            <Text style={ui.eyebrow}>TVAPP / CHECADOR</Text>
-            <Text style={styles.brand}>{schedule.empresa}</Text>
-          </View>
-          <Text style={styles.avatar}>
-            {selected?.nombre.split(" ").slice(0, 2).map((part) => part[0]).join("") ?? "TV"}
-          </Text>
+          <Text style={styles.brand}>{screen === "home" ? "Checador" : "Capturas"}</Text>
+          {screen === "captures" && (
+            <Pressable accessibilityRole="button" onPress={() => setScreen("home")}>
+              <Text style={styles.link}>Volver</Text>
+            </Pressable>
+          )}
         </View>
-        <Text style={styles.greeting}>
-          {selected ? `Hola, ${selected.nombre.split(" ")[0]}.` : "Checador de asistencia"}
-        </Text>
-        <View style={styles.clockCard}>
-          <Text style={styles.clock}>{timeLabel(now, schedule.zonaHoraria)}</Text>
-          <Text style={styles.date}>
-            {new Intl.DateTimeFormat("es-MX", {
-              timeZone: schedule.zonaHoraria,
-              weekday: "long",
-              day: "numeric",
-              month: "long",
-            }).format(now)}
-          </Text>
-          <Text style={ui.description}>
-            Horario {schedule.entradaEsperada} — {schedule.salidaEsperada}
-          </Text>
-          <Text style={styles.small}>{schedule.toleranciaMinutos} min de tolerancia</Text>
-        </View>
-        <View style={ui.card}>
-          <View style={styles.row}>
-            <Text style={styles.section}>Mi asistencia</Text>
-            <Text style={{ color: colors.teal, fontSize: 12 }}>
-              {salida ? "Jornada completada" : entrada ? "Dentro de jornada" : "Por comenzar"}
-            </Text>
+        {screen === "home" ? <>
+          <View style={styles.clockSection}>
+            <Text style={styles.clock}>{timeLabel(now, schedule.zonaHoraria)}</Text>
+            <Text style={styles.date}>{new Intl.DateTimeFormat("es-MX", {
+              timeZone: schedule.zonaHoraria, weekday: "long", day: "numeric", month: "long",
+            }).format(now)}</Text>
           </View>
-          <View style={styles.row}>
-            <View style={styles.punchTime}>
-              <Text style={ui.label}>ENTRADA</Text>
-              <Text style={styles.time}>{entrada ? timeLabel(entrada.timestamp, schedule.zonaHoraria) : "— : —"}</Text>
-              {entrada && <Badge status={entrada.estado} />}
-              {!!entrada?.minutosRetardo && <Text style={styles.small}>{entrada.minutosRetardo} min de retardo</Text>}
+          <View style={styles.actions}>
+            <Action label="Registrar entrada" onPress={() => startPunch("entrada")} disabled={busy || !services} />
+            <Action label="Registrar salida" onPress={() => startPunch("salida")} disabled={busy || !services} secondary />
+            {busy && <ActivityIndicator color={colors.teal} />}
+            <Message text={message} />
+            <Message text={error || configurationError || ""} error />
+          </View>
+          <View style={styles.footer}>
+            <Pressable accessibilityRole="button" onPress={() => setScreen("captures")} disabled={busy}>
+              <Text style={styles.link}>Capturas</Text>
+            </Pressable>
+            <Pressable accessibilityRole="button" onPress={confirmClear} disabled={busy}>
+              <Text style={styles.link}>Limpiar historial</Text>
+            </Pressable>
+          </View>
+        </> : <>
+          {captures.length === 0 && <Text style={styles.empty}>Aún no hay capturas.</Text>}
+          {captures.map((capture) => (
+            <View style={styles.captureRow} key={capture.id}>
+              <Image source={{ uri: capture.uri }} style={styles.thumbnail} />
+              <View style={styles.captureInfo}>
+                <Text style={styles.captureName}>{capture.nombre}</Text>
+                <Text style={styles.captureDetail}>{new Intl.DateTimeFormat("es-MX", {
+                  timeZone: schedule.zonaHoraria, dateStyle: "medium", timeStyle: "short",
+                }).format(capture.timestamp)}</Text>
+                <Text style={styles.captureDetail}>{capture.tipo === "entrada" ? "Entrada" : "Salida"}</Text>
+              </View>
             </View>
-            <View style={styles.punchTime}>
-              <Text style={ui.label}>SALIDA</Text>
-              <Text style={styles.time}>{salida ? timeLabel(salida.timestamp, schedule.zonaHoraria) : "— : —"}</Text>
-              {salida && <Badge status={salida.estado} />}
-            </View>
-          </View>
-          <Action label="Registrar entrada" onPress={() => startPunch("entrada")} disabled={busy || !services} />
-          <Action label="Registrar salida" onPress={() => startPunch("salida")} disabled={busy || !services} secondary />
-          {busy && <ActivityIndicator color={colors.teal} />}
-          <Message text={message} />
-          <Message text={error || configurationError || live.error} error />
-        </View>
+          ))}
+          <Message text={error} error />
+        </>}
       </ScrollView>
-      <Modal visible={!!pendingType} transparent animationType="fade" onRequestClose={() => !busy && setPendingType(null)}>
+      <Modal visible={!!pendingType} transparent animationType="fade" onRequestClose={() => { if (!busy) { setNombre(""); setClave(""); setPendingType(null); } }}>
         <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-          <View style={[ui.card, styles.modalCard]}>
+          <View style={styles.modalPanel}>
             <Text style={styles.section}>Identificar empleado</Text>
-            <Text style={ui.description}>Escribe el nombre y la clave registrados en Firestore.</Text>
+            <Text style={ui.description}>Escribe tu nombre y clave.</Text>
             <Field label="Nombre" value={nombre} onChange={setNombre} placeholder="Nombre completo" maxLength={15} />
             <Field label="Clave" value={clave} onChange={setClave} secure maxLength={15} />
             <Action label={busy ? "Verificando…" : `Confirmar ${pendingType}`} onPress={confirmIdentity} disabled={busy || !nombre.trim() || !clave} />
-            <Action label="Cancelar" secondary onPress={() => { setClave(""); setPendingType(null); }} disabled={busy} />
+            <Action label="Cancelar" secondary onPress={() => { setNombre(""); setClave(""); setPendingType(null); }} disabled={busy} />
           </View>
         </KeyboardAvoidingView>
       </Modal>
+      {cameraActive && <View style={styles.captureOverlay}>
+        <CameraView ref={cameraRef} facing="front" onCameraReady={() => cameraAction.current?.()} style={styles.captureCamera} />
+        <Text style={styles.captureStatus}>Tomando foto…</Text>
+      </View>}
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { width: "100%", maxWidth: 560, alignSelf: "center", padding: 24, gap: 20, paddingBottom: 36 },
+  container: { width: "100%", maxWidth: 560, alignSelf: "center", padding: 24, gap: 24, paddingBottom: 36 },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  brand: { color: colors.text, fontSize: 17, fontWeight: "700", marginTop: 7 },
-  avatar: { backgroundColor: colors.card, borderRadius: 14, padding: 15, color: colors.teal, fontWeight: "700", overflow: "hidden" },
-  greeting: { fontSize: 30, color: colors.text, fontWeight: "700", letterSpacing: -0.8 },
-  clockCard: { backgroundColor: colors.panel, borderRadius: 22, padding: 26, gap: 9, borderWidth: 1, borderColor: colors.border, alignItems: "center" },
+  brand: { color: colors.text, fontSize: 24, fontWeight: "700" },
+  clockSection: { paddingVertical: 42, alignItems: "center", gap: 8, borderBottomWidth: 1, borderBottomColor: colors.border },
   clock: { fontSize: 64, color: colors.text, fontWeight: "300", letterSpacing: -3, fontVariant: ["tabular-nums"] },
   date: { fontSize: 14, color: colors.muted, textTransform: "capitalize" },
-  small: { color: colors.muted, fontSize: 11, lineHeight: 18 },
-  row: { flexDirection: "row", justifyContent: "space-between", gap: 10, alignItems: "center" },
+  actions: { gap: 14, paddingTop: 8 },
+  footer: { flexDirection: "row", justifyContent: "space-between", borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 22 },
+  link: { color: colors.teal, fontSize: 14, fontWeight: "600" },
   section: { color: colors.text, fontSize: 15, fontWeight: "600" },
-  punchTime: { flex: 1, gap: 10, paddingVertical: 12 },
-  time: { fontSize: 26, fontWeight: "500", color: colors.text, fontVariant: ["tabular-nums"] },
+  empty: { color: colors.muted, fontSize: 15, paddingVertical: 28 },
+  captureRow: { flexDirection: "row", gap: 16, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: colors.border },
+  thumbnail: { width: 88, height: 88, backgroundColor: colors.panel },
+  captureInfo: { flex: 1, gap: 6, justifyContent: "center" },
+  captureName: { color: colors.text, fontSize: 16, fontWeight: "600" },
+  captureDetail: { color: colors.muted, fontSize: 13 },
   modalOverlay: { flex: 1, backgroundColor: "#000b", justifyContent: "center", padding: 24 },
-  modalCard: { width: "100%", maxWidth: 440, alignSelf: "center" },
+  modalPanel: { width: "100%", maxWidth: 440, alignSelf: "center", backgroundColor: colors.bg, padding: 24, gap: 16, borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.border },
+  captureOverlay: { position: "absolute", top: 0, right: 0, bottom: 0, left: 0, backgroundColor: colors.bg },
+  captureCamera: { flex: 1 },
+  captureStatus: { position: "absolute", bottom: 30, alignSelf: "center", color: colors.text, fontSize: 15, fontWeight: "600" },
 });

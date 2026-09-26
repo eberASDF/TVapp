@@ -8,6 +8,7 @@ Checador móvil y pantalla TV hechos en React Native. La pantalla conserva el ta
 2. Confirma con la biometría local del teléfono. Si falla o se cancela, no se abre la identificación ni se registra nada.
 3. Escribe el nombre y la clave del empleado ficticio creado manualmente en Firestore.
 4. Firestore verifica el hash de la clave en un documento privado y guarda la asistencia con hora del servidor. La TV la recibe con `onSnapshot`.
+5. El móvil toma una foto con la cámara frontal y la conserva solo en el teléfono, en **Capturas**. El nombre y la clave se borran del formulario al terminar.
 
 No se guardan huellas ni rostros. No se utiliza Firebase Authentication, correo, Cloud Functions ni servicios de pago. El horario es 07:00–15:00, con cinco minutos de tolerancia en `America/Phoenix`.
 
@@ -22,12 +23,14 @@ npm.cmd run tv
 
 Ejecuta móvil y TV en terminales separadas. Abre cada QR con Expo Go. No necesitas Android Studio para ver la pantalla en un teléfono Android; colócalo horizontalmente para la vista TV. La biometría se solicita solo en la app móvil. Para compilar una APK o instalar en un emulador Android sí se requiere el SDK nativo.
 
-Ambas apps necesitan sus archivos `.env` apuntando al mismo proyecto Firebase. Sigue [la guía de Firestore](docs/FIREBASE.md) para crear empleados ficticios y configurar las aplicaciones. La pantalla mostrará “Sin avisos por mostrar” hasta que agregues un aviso en `tablero`; los registros aparecen en cuanto el móvil registra.
+Ambas apps necesitan sus archivos `.env` apuntando al mismo proyecto Firebase. Sigue [la guía de Firestore](docs/FIREBASE.md) para crear empleados ficticios y configurar las aplicaciones. La pantalla mostrará “Sin avisos por mostrar” hasta que agregues un aviso en `tablero`; los registros aparecen en cuanto el móvil registra. **Limpiar historial** borra todas las asistencias y sus comprobaciones de Firestore, además de las capturas de ese teléfono; no borra empleados.
+
+La transmisión continua de la cámara teléfono→TV queda pendiente: esta versión usa Expo Go y no incluye un módulo nativo de streaming ni un servidor intermediario. Las fotos sí se toman con `expo-camera` y se guardan con `expo-file-system`, sin Firebase Storage.
 
 ## Validación y límites
 
 `npm.cmd run check` ejecuta TypeScript y las pruebas de negocio, biometría y voz. Las reglas se prueban en Firestore Emulator como indica [la guía](docs/FIREBASE.md). Los [resultados](docs/RESULTADOS.md) distinguen las pruebas automatizadas de las pendientes en dispositivos.
 
-El retraso se calcula desde el timestamp del servidor y el horario conservado en cada asistencia. Se permite una entrada y una salida por empleado y día; la salida requiere entrada previa. Los registros son inmutables para las apps.
+El retraso se calcula desde el timestamp del servidor y el horario conservado en cada asistencia. Se permite una entrada y una salida por empleado y día; la salida requiere entrada previa. Las apps no pueden editar registros; en esta demo sí pueden borrarlos.
 
-**Seguridad del prototipo:** la lectura de asistencias es pública para que la TV funcione sin cuenta; usa solo nombres ficticios. Los perfiles y hashes no se pueden leer desde el cliente. Firestore no puede demostrar que el sensor biométrico se usó en un cliente modificado ni limitar intentos de clave sin otro servicio. No uses esta versión para asistencia real.
+**Seguridad del prototipo:** la lectura y el borrado de asistencias son públicos por decisión de esta demo escolar; cualquier cliente que conozca el proyecto puede eliminar los registros. Usa solo nombres ficticios. Los perfiles y hashes no se pueden leer desde el cliente. Firestore no puede demostrar que el sensor biométrico se usó en un cliente modificado ni limitar intentos de clave sin otro servicio. No uses esta versión para asistencia real.

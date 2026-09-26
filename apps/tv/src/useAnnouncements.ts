@@ -36,6 +36,15 @@ export function useAnnouncements(
       setQueue((previous) => [...previous, ...fresh].slice(-30));
   }, [rows, cached, ready, scope]);
   useEffect(() => {
+    if (cached || !ready) return;
+    const present = new Set(rows.map((row) => row.id));
+    if (active && !present.has(active.id)) void stopSpeech().catch(() => {});
+    setQueue((previous) => {
+      const remaining = previous.filter((row) => present.has(row.id));
+      return remaining.length === previous.length ? previous : remaining;
+    });
+  }, [rows, cached, ready, active?.id]);
+  useEffect(() => {
     if (!active) return;
     void speak(
       `Gracias, ${active.nombre}. ${active.tipo === "entrada" ? "Entrada" : "Salida"} registrada. ${statusLabels[active.estado]}.`,

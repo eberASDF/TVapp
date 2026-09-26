@@ -239,9 +239,6 @@ function Notice({ item, scale }: { item: ContentItem; scale: number }) {
   const s = styles(scale);
   return (
     <View style={s.notice}>
-      <View style={s.orbit1} />
-      <View style={s.orbit2} />
-      <View style={s.orbit3} />
       <View style={{ maxWidth: "82%", gap: 24 * scale }}>
         <Text style={s.hero}>{item.titulo}</Text>
         <Text style={s.heroBody}>{item.texto}</Text>
@@ -274,12 +271,11 @@ const styles = (z: number) =>
     logo: {
       width: 48 * z,
       height: 48 * z,
-      borderRadius: 14 * z,
-      backgroundColor: colors.teal,
+      backgroundColor: colors.bg,
       alignItems: "center",
       justifyContent: "center",
     },
-    logoText: { fontSize: 27 * z, fontWeight: "900", color: colors.bg },
+    logoText: { fontSize: 27 * z, fontWeight: "900", color: colors.teal },
     brand: { fontSize: 20 * z, fontWeight: "700", color: colors.text },
     headerRight: { flexDirection: "row", alignItems: "center", gap: 24 * z },
     connection: { flexDirection: "row", alignItems: "center", gap: 8 * z },
@@ -331,10 +327,11 @@ const styles = (z: number) =>
     },
     board: {
       flex: 1,
-      borderRadius: 18 * z,
       overflow: "hidden",
       minHeight: 180 * z,
-      backgroundColor: colors.panel,
+      backgroundColor: colors.bg,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
     },
     empty: { flex: 1, justifyContent: "center", padding: 40 * z, gap: 15 * z },
     boardBottom: {
@@ -354,38 +351,9 @@ const styles = (z: number) =>
     notice: {
       flex: 1,
       padding: 38 * z,
-      backgroundColor: "#183633",
+      backgroundColor: colors.bg,
       justifyContent: "center",
       overflow: "hidden",
-    },
-    orbit1: {
-      position: "absolute",
-      width: 480 * z,
-      height: 480 * z,
-      borderRadius: 240 * z,
-      borderWidth: 1,
-      borderColor: "#2d5650",
-      right: -200 * z,
-      bottom: -210 * z,
-    },
-    orbit2: {
-      position: "absolute",
-      width: 350 * z,
-      height: 350 * z,
-      borderRadius: 175 * z,
-      borderWidth: 55 * z,
-      borderColor: "#214640",
-      right: -135 * z,
-      bottom: -145 * z,
-    },
-    orbit3: {
-      position: "absolute",
-      width: 180 * z,
-      height: 180 * z,
-      borderRadius: 90 * z,
-      backgroundColor: "#345b49",
-      right: -40 * z,
-      bottom: -64 * z,
     },
     hero: {
       fontSize: 49 * z,
@@ -409,9 +377,7 @@ const styles = (z: number) =>
       letterSpacing: -0.6 * z,
     },
     count: {
-      backgroundColor: colors.card,
-      borderRadius: 8 * z,
-      padding: 9 * z,
+      padding: 2 * z,
     },
     countText: { color: colors.teal, fontSize: 14 * z, fontWeight: "700" },
     listLabel: {
@@ -431,8 +397,7 @@ const styles = (z: number) =>
     avatar: {
       width: 36 * z,
       height: 36 * z,
-      borderRadius: 11 * z,
-      backgroundColor: colors.card,
+      backgroundColor: colors.bg,
       justifyContent: "center",
       alignItems: "center",
     },
@@ -464,16 +429,15 @@ const styles = (z: number) =>
       flexDirection: "row",
       alignItems: "center",
       gap: 14 * z,
-      backgroundColor: "#102a27",
-      borderWidth: 1,
-      borderColor: "#478373",
-      borderRadius: 12 * z,
+      backgroundColor: colors.bg,
+      borderTopWidth: 1,
+      borderBottomWidth: 1,
+      borderColor: colors.border,
     },
     toastIcon: {
       width: 36 * z,
       height: 36 * z,
-      backgroundColor: "#20483f",
-      borderRadius: 18 * z,
+      backgroundColor: colors.bg,
       alignItems: "center",
       justifyContent: "center",
     },

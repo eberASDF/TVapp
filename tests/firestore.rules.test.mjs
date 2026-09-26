@@ -51,6 +51,7 @@ before(async () => {
         ["ana-lopez", "Ana López", true], ["inactivo", "Inactivo", false],
         ["api", "Api", true], ["directo", "Directo", true], ["alterado", "Alterado", true],
         ["salida-sola", "Salida Sola", true], ["huella", "Huella", true],
+        ["limpiable", "Limpiable", true],
       ].map(([id, nombre, activo]) => setDoc(doc(db, "empleados", id), { nombre, activo, claveHash: hashFor(id) })),
       setDoc(doc(db, "tablero", "aviso"), { titulo: "Aviso", orden: 0, activo: true }),
     ]);
@@ -139,12 +140,50 @@ test("rechaza alteraciones de identidad, hora, día, horario y biometría", asyn
   await assertFails(pairedWrite(db, person, "entrada", {}, { claveHash: "0".repeat(64) }));
 });
 
+test("borrado público retira asistencia de la TV y permite registrar de nuevo", async () => {
+  const db = client();
+  const person = employee("limpiable", "Limpiable");
+  const id = idFor(person.id, "entrada");
+  await assertSucceeds(pairedWrite(db, person, "entrada"));
+  await assertFails(deleteDoc(doc(db, "asistencias", id)));
+  await assertFails(deleteDoc(doc(db, "comprobaciones", id)));
+  const removed = new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error("TV no retiró el registro")), 10000);
+    const off = onSnapshot(doc(db, "asistencias", id), (snap) => {
+      if (!snap.exists()) { clearTimeout(timeout); off(); resolve(); }
+    }, reject);
+  });
+  const batch = writeBatch(db);
+  batch.delete(doc(db, "asistencias", id));
+  batch.delete(doc(db, "comprobaciones", id));
+  await assertSucceeds(batch.commit());
+  await removed;
+  await assertSucceeds(pairedWrite(db, person, "entrada"));
+});
+
 test("nadie crea empleados ni modifica registros o claves desde la app", async () => {
   const db = client();
   await assertFails(setDoc(doc(db, "empleados/nuevo"), { nombre: "Nuevo", activo: true, claveHash: hashFor("nuevo") }));
   await assertFails(updateDoc(doc(db, "empleados/api"), { activo: false }));
   await assertFails(updateDoc(doc(db, "asistencias", idFor("api", "entrada")), { nombre: "Falso" }));
-  await assertFails(deleteDoc(doc(db, "asistencias", idFor("api", "entrada"))));
+  await assertFails(deleteDoc(doc(db, "empleados/api")));
   await assertFails(updateDoc(doc(db, "comprobaciones", idFor("api", "entrada")), { claveHash: "0".repeat(64) }));
   await assertFails(setDoc(doc(db, "tablero/nuevo"), { titulo: "Texto" }));
+});
+
+test("Limpiar historial elimina registros y comprobaciones; TV queda vacía", async () => {
+  const db = client();
+  const person = employee("limpiable", "Limpiable");
+  const id = idFor(person.id, "entrada");
+  const empty = new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error("TV no vació el historial")), 10000);
+    const off = onSnapshot(query(collection(db, "asistencias"), where("dia", "==", dia), orderBy("timestamp", "desc"), limit(100)), (snap) => {
+      if (snap.empty) { clearTimeout(timeout); off(); resolve(); }
+    }, reject);
+  });
+  const { clearAttendanceHistory } = attendanceFor(db);
+  assert.ok((await clearAttendanceHistory()) >= 1);
+  await empty;
+  await assertSucceeds(pairedWrite(db, person, "entrada"));
+  assert.equal((await getDoc(doc(db, "asistencias", id))).exists(), true);
 });

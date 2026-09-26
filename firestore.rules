@@ -70,12 +70,14 @@ service cloud.firestore {
     match /empleados/{id} { allow read, write: if false; }
     match /comprobaciones/{id} {
       allow create: if validProof(id);
-      allow read, update, delete: if false;
+      allow delete: if !existsAfter(attendancePath(id)); // Siempre junto con la asistencia.
+      allow read, update: if false;
     }
     match /asistencias/{id} {
       allow get, list: if true;
       allow create: if validAttendance(id);
-      allow update, delete: if false;
+      allow delete: if !existsAfter(proofPath(id)); // Borrado público, siempre en pareja.
+      allow update: if false;
     }
     match /tablero/{id} {
       allow read: if true;
