@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
 import {
+  Image,
   ScrollView,
   StyleSheet,
   Text,
@@ -83,33 +84,29 @@ export default function App() {
             <Text style={s.boardTitle}>Avisos</Text>
           </View>
           <View style={s.board}>
-            <View style={s.empty}>
-              <Text style={s.heading}>Sin avisos por mostrar</Text>
-            </View>
-            {announcements.active && (
-              <View style={s.toast} accessibilityLiveRegion="polite">
-                <View style={s.toastIcon}>
-                  <Text style={{ fontSize: 22 * scale, color: colors.teal }}>
-                    ✓
+            {announcements.active ? (
+              <View style={s.liveNotice} accessibilityLiveRegion="polite">
+                {announcements.active.fotoMiniatura && (
+                  <Image
+                    source={{ uri: `data:image/jpeg;base64,${announcements.active.fotoMiniatura}` }}
+                    style={s.livePhoto}
+                    resizeMode="contain"
+                  />
+                )}
+                <View style={s.liveDetails}>
+                  <Text style={s.liveName}>{announcements.active.nombre}</Text>
+                  <Text style={s.liveType}>
+                    {announcements.active.tipo === "entrada" ? "Entrada" : "Salida"} registrada
                   </Text>
+                  <Text style={s.liveTime}>
+                    {timeLabel(announcements.active.timestamp, schedule.zonaHoraria)}
+                  </Text>
+                  <Text style={s.liveStatus}>{statusLabels[announcements.active.estado]}</Text>
                 </View>
-                <View style={{ flex: 1, gap: 5 }}>
-                  <Text style={s.toastTitle}>
-                    Gracias, {announcements.active.nombre.split(" ")[0]}.
-                  </Text>
-                  <Text style={s.toastBody}>
-                    {announcements.active.tipo === "entrada"
-                      ? "Entrada"
-                      : "Salida"}{" "}
-                    registrada · {statusLabels[announcements.active.estado]}
-                  </Text>
-                </View>
-                <Text style={s.toastTime}>
-                  {timeLabel(
-                    announcements.active.timestamp,
-                    schedule.zonaHoraria,
-                  )}
-                </Text>
+              </View>
+            ) : (
+              <View style={s.empty}>
+                <Text style={s.heading}>Sin avisos por mostrar</Text>
               </View>
             )}
           </View>
@@ -367,30 +364,13 @@ const styles = (z: number) =>
     },
     scheduleTime: { fontSize: 20 * z, fontWeight: "500", color: colors.text },
     scheduleNote: { fontSize: 10 * z, color: colors.muted },
-    toast: {
-      position: "absolute",
-      left: 18 * z,
-      right: 18 * z,
-      bottom: 18 * z,
-      padding: 18 * z,
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 14 * z,
-      backgroundColor: colors.bg,
-      borderTopWidth: 1,
-      borderBottomWidth: 1,
-      borderColor: colors.border,
-    },
-    toastIcon: {
-      width: 36 * z,
-      height: 36 * z,
-      backgroundColor: colors.bg,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    toastTitle: { fontSize: 17 * z, color: colors.text, fontWeight: "600" },
-    toastBody: { fontSize: 12 * z, color: "#a0c4b8" },
-    toastTime: { fontSize: 16 * z, color: colors.teal },
+    liveNotice: { flex: 1, flexDirection: "row", alignItems: "center", gap: 30 * z, padding: 28 * z },
+    livePhoto: { width: "58%", height: "100%", backgroundColor: colors.panel },
+    liveDetails: { flex: 1, gap: 16 * z },
+    liveName: { color: colors.text, fontSize: 32 * z, fontWeight: "700" },
+    liveType: { color: colors.teal, fontSize: 22 * z, fontWeight: "600" },
+    liveTime: { color: colors.text, fontSize: 27 * z, fontVariant: ["tabular-nums"] },
+    liveStatus: { color: colors.muted, fontSize: 17 * z },
     footer: {
       flexDirection: "row",
       justifyContent: "flex-end",

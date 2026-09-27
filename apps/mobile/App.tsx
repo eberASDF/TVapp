@@ -23,11 +23,13 @@ import {
   services,
   timeLabel,
   useClock,
+  validateEmployeeCredential,
 } from "@tvapp/shared";
 import { Action, Field, Message, colors, ui } from "@tvapp/shared/src/ui";
 import { withBiometricConfirmation } from "./src/biometricPunch";
 import { employeeCredential } from "./src/identity";
-import { Capture, loadCaptures, saveCapture } from "./src/captures";
+import { Capture, discardStagedCapture, loadCaptures, saveCapture, stageCapture } from "./src/captures";
+import { createThumbnail } from "./src/thumbnail";
 import { clearTvHistory } from "./src/clearTvHistory";
 
 export default function App() {
@@ -112,23 +114,33 @@ function Main() {
     setBusy(true);
     setError("");
     const tipo = pendingType;
+    let stagedUri: string | null = null;
+    let registered = false;
     try {
       const employee = await employeeCredential(nombre, clave);
-      const result = await registerAttendance(employee, tipo);
+      await validateEmployeeCredential(employee);
       setPendingType(null);
       setNombre("");
       setClave("");
+      const photoUri = await takePhoto();
+      stagedUri = await stageCapture(photoUri);
+      const fotoMiniatura = await createThumbnail(stagedUri);
+      const result = await registerAttendance(employee, tipo, fotoMiniatura);
+      registered = true;
       setMessage(tipo === "entrada" ? "Bienvenido a tu turno" : "Gracias por completar tu turno");
       try {
-        const uri = await takePhoto();
-        const capture = await saveCapture(result, uri);
+        const capture = await saveCapture(result, stagedUri);
+        stagedUri = null;
         setCaptures((previous) => [capture, ...previous.filter((item) => item.id !== capture.id)]);
       } catch {
-        setError("La asistencia se registró, pero no se pudo guardar la foto.");
+        setError("La asistencia se registró, pero no se pudo añadir la foto a Capturas.");
       }
     } catch (e) {
       setError(readableError(e));
     } finally {
+      if (stagedUri && !registered) {
+        try { discardStagedCapture(stagedUri); } catch { /* Conservar el error original. */ }
+      }
       setNombre("");
       setClave("");
       setPendingType(null);

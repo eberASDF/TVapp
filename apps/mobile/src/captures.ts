@@ -12,6 +12,20 @@ export type Capture = {
 const folder = new Directory(Paths.document, "capturas");
 const index = new File(folder, "index.json");
 
+export async function stageCapture(sourceUri: string): Promise<string> {
+  folder.create({ idempotent: true, intermediates: true });
+  const destination = new File(folder, `pendiente-${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`);
+  const source = new File(sourceUri);
+  await source.copy(destination);
+  try { source.delete(); } catch { /* El sistema también limpia su caché. */ }
+  return destination.uri;
+}
+
+export function discardStagedCapture(uri: string) {
+  const file = new File(uri);
+  if (file.exists) file.delete();
+}
+
 export async function loadCaptures(): Promise<Capture[]> {
   if (!index.exists) return [];
   const entries: unknown = JSON.parse(await index.text());

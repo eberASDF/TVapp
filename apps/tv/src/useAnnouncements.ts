@@ -55,7 +55,7 @@ export function useAnnouncements(
     );
     const timer = setTimeout(
       () => setQueue((previous) => previous.slice(1)),
-      6500,
+      3000,
     );
     return () => clearTimeout(timer);
   }, [active?.id]);

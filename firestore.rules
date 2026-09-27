@@ -41,8 +41,8 @@ service cloud.firestore {
     }
     function validAttendance(id) {
       let data = request.resource.data;
-      return data.keys().hasAll(['empleadoId', 'nombre', 'tipo', 'timestamp', 'dia', 'zonaHoraria', 'entradaEsperada', 'salidaEsperada', 'toleranciaMinutos'])
-        && data.keys().hasOnly(['empleadoId', 'nombre', 'tipo', 'timestamp', 'dia', 'zonaHoraria', 'entradaEsperada', 'salidaEsperada', 'toleranciaMinutos'])
+      return data.keys().hasAll(['empleadoId', 'nombre', 'tipo', 'timestamp', 'dia', 'zonaHoraria', 'entradaEsperada', 'salidaEsperada', 'toleranciaMinutos', 'fotoMiniatura'])
+        && data.keys().hasOnly(['empleadoId', 'nombre', 'tipo', 'timestamp', 'dia', 'zonaHoraria', 'entradaEsperada', 'salidaEsperada', 'toleranciaMinutos', 'fotoMiniatura'])
         && data.empleadoId is string
         && data.empleadoId.size() >= 1
         && data.empleadoId.size() <= 80
@@ -51,6 +51,10 @@ service cloud.firestore {
         && data.nombre.size() >= 1
         && data.nombre.size() <= 80
         && data.tipo in ['entrada', 'salida']
+        && data.fotoMiniatura is string
+        && data.fotoMiniatura.size() >= 100
+        && data.fotoMiniatura.size() <= 40000
+        && data.fotoMiniatura.matches('^/9j/[A-Za-z0-9+/]*={0,2}$')
         && id == recordId(data.empleadoId, data.tipo)
         && data.timestamp == request.time
         && data.dia == localDay()
@@ -68,6 +72,10 @@ service cloud.firestore {
           || exists(attendancePath(recordId(data.empleadoId, 'entrada'))));
     }
     match /empleados/{id} { allow read, write: if false; }
+    match /validaciones/{employeeId}/nombres/{nombre}/claves/{claveHash} {
+      allow get: if validEmployee(employeeId, nombre, claveHash);
+      allow list, create, update, delete: if false;
+    }
     match /comprobaciones/{id} {
       allow create: if validProof(id);
       allow read, update, delete: if false;

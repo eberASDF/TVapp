@@ -16,6 +16,30 @@ import {
 } from "./domain";
 import { defaultSchedule } from "./types";
 
+export async function validateEmployeeCredential(
+  employee: { id: string; nombre: string; claveHash: string },
+): Promise<void> {
+  const firebase = services;
+  if (!firebase) throw new Error("Firebase no está configurado.");
+  if (employee.nombre.includes("/")) throw new Error("Nombre inválido.");
+  // Documento inexistente: las reglas autorizan su lectura solo si nombre y hash coinciden.
+  try {
+    await getDocFromServer(doc(
+      firebase.db,
+      "validaciones",
+      employee.id,
+      "nombres",
+      employee.nombre,
+      "claves",
+      employee.claveHash,
+    ));
+  } catch (cause) {
+    if ((cause as { code?: string }).code === "permission-denied")
+      throw new Error("Nombre o clave incorrectos.");
+    throw cause;
+  }
+}
+
 function millis(value: unknown) {
   if (value instanceof Timestamp) return value.toMillis();
   if (value && typeof (value as { toMillis?: unknown }).toMillis === "function")
@@ -44,6 +68,7 @@ export function attendanceFromFirestore(
     tipo: data.tipo as PunchType,
     timestamp,
     zonaHoraria: recordedSchedule.zonaHoraria,
+    fotoMiniatura: typeof data.fotoMiniatura === "string" ? data.fotoMiniatura : undefined,
     ...classifyPunch(data.tipo as PunchType, timestamp, recordedSchedule),
   };
 }
@@ -51,6 +76,7 @@ export function attendanceFromFirestore(
 export async function registerAttendance(
   employee: { id: string; nombre: string; claveHash: string },
   tipo: PunchType,
+  fotoMiniatura: string,
 ): Promise<Attendance> {
   const firebase = services;
   if (!firebase) throw new Error("Firebase no está configurado.");
@@ -87,6 +113,7 @@ export async function registerAttendance(
       entradaEsperada: schedule.entradaEsperada,
       salidaEsperada: schedule.salidaEsperada,
       toleranciaMinutos: schedule.toleranciaMinutos,
+      fotoMiniatura,
     });
   });
 

@@ -18,5 +18,11 @@
       ]
     }
   ],
-  "fieldOverrides": []
+  "fieldOverrides": [
+    {
+      "collectionGroup": "asistencias",
+      "fieldPath": "fotoMiniatura",
+      "indexes": []
+    }
+  ]
 }

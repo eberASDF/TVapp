@@ -14,10 +14,12 @@ const dia = Number(`${local.year}${local.month}${local.day}`);
 const idFor = (id, tipo) => `${id}_${dia}_${tipo}`;
 const hashFor = (id, clave = "clave-escolar-larga") => createHash("sha256").update(`tvapp:v1:${id}:${clave}`).digest("hex");
 const employee = (id, nombre, clave = "clave-escolar-larga") => ({ id, nombre, claveHash: hashFor(id, clave) });
+const fotoMiniatura = Buffer.from([0xff, 0xd8, 0xff, ...Array(90).fill(0)]).toString("base64");
 const record = (person, tipo, override = {}) => ({
   empleadoId: person.id, nombre: person.nombre, tipo, timestamp: serverTimestamp(), dia,
   zonaHoraria: schedule.zonaHoraria, entradaEsperada: schedule.entradaEsperada,
   salidaEsperada: schedule.salidaEsperada, toleranciaMinutos: schedule.toleranciaMinutos,
+  fotoMiniatura,
   ...override,
 });
 const proof = (person, tipo, override = {}) => ({ empleadoId: person.id, nombre: person.nombre, tipo, claveHash: person.claveHash, ...override });
@@ -75,6 +77,18 @@ test("TV anónima lee solo asistencias; claves y comprobaciones son privadas", a
   await assertFails(getDocs(collection(db, "empleados")));
   await assertFails(getDoc(doc(db, "comprobaciones", idFor("ana-lopez", "entrada"))));
   await assertFails(getDocs(collection(db, "comprobaciones")));
+  await assertFails(getDocs(collection(db, "validaciones")));
+});
+
+test("móvil valida nombre y clave antes de abrir la cámara sin leer empleados", async () => {
+  const db = client();
+  const { validateEmployeeCredential } = attendanceFor(db);
+  await assert.doesNotReject(validateEmployeeCredential(employee("ana-lopez", "Ana López")));
+  await assert.rejects(validateEmployeeCredential(employee("ana-lopez", "Ana López", "clave-falsa")), /Nombre o clave incorrectos/);
+  await assert.rejects(validateEmployeeCredential(employee("ana-lopez", "Nombre falso")), /Nombre o clave incorrectos/);
+  await assert.rejects(validateEmployeeCredential(employee("inactivo", "Inactivo")), /Nombre o clave incorrectos/);
+  await assert.rejects(validateEmployeeCredential(employee("desconocido", "Desconocido")), /Nombre o clave incorrectos/);
+  await assert.equal((await getDocs(collection(db, "asistencias"))).empty, true);
 });
 
 test("móvil registra con su transacción y TV recibe onSnapshot", async () => {
@@ -89,16 +103,18 @@ test("móvil registra con su transacción y TV recibe onSnapshot", async () => {
     }, reject);
   });
   const { registerAttendance, attendanceFromFirestore } = attendanceFor(db);
-  const entrada = await registerAttendance(person, "entrada");
+  const entrada = await registerAttendance(person, "entrada", fotoMiniatura);
   assert.equal(entrada.id, id);
   assert.equal(entrada.empleadoId, person.id);
   assert.equal(entrada.dia, dia);
+  assert.equal(entrada.fotoMiniatura, fotoMiniatura);
   const received = await seen;
   assert.equal(received.nombre, "Api");
+  assert.equal(received.fotoMiniatura, fotoMiniatura);
   assert.equal(typeof received.timestamp.toMillis, "function");
   assert.equal("claveHash" in received, false);
-  await assert.rejects(registerAttendance(person, "entrada"));
-  const salida = await registerAttendance(person, "salida");
+  await assert.rejects(registerAttendance(person, "entrada", fotoMiniatura));
+  const salida = await registerAttendance(person, "salida", fotoMiniatura);
   assert.equal(salida.id, idFor(person.id, "salida"));
   const historical = attendanceFromFirestore("old", { ...received, timestamp: firestore.Timestamp.fromDate(new Date("2026-09-21T14:05:01Z")) }, { ...schedule, entradaEsperada: "10:00", toleranciaMinutos: 0 });
   assert.equal(historical.minutosRetardo, 1);
@@ -135,7 +151,17 @@ test("rechaza alteraciones de identidad, hora, día, horario y biometría", asyn
     { timestamp: new Date(0) }, { zonaHoraria: "UTC" },
     { entradaEsperada: "08:00" }, { toleranciaMinutos: 99 },
     { huella: "dato biométrico" },
+    { fotoMiniatura: null },
+    { fotoMiniatura: "data:image/jpeg;base64," + fotoMiniatura },
+    { fotoMiniatura: "/9j/" + "A".repeat(40_001) },
+    { fotoMiniatura: "texto" },
   ]) await assertFails(pairedWrite(db, person, "entrada", change));
+  const missingPhoto = record(person, "entrada");
+  delete missingPhoto.fotoMiniatura;
+  const withoutPhoto = writeBatch(db);
+  withoutPhoto.set(doc(db, "comprobaciones", idFor(person.id, "entrada")), proof(person, "entrada"));
+  withoutPhoto.set(doc(db, "asistencias", idFor(person.id, "entrada")), missingPhoto);
+  await assertFails(withoutPhoto.commit());
   await assertFails(pairedWrite(db, person, "entrada", {}, { clave: "texto plano" }));
   await assertFails(pairedWrite(db, person, "entrada", {}, { claveHash: "0".repeat(64) }));
 });

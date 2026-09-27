@@ -21,6 +21,7 @@ export interface Attendance {
   estado: AttendanceStatus;
   minutosRetardo: number;
   zonaHoraria: string;
+  fotoMiniatura?: string;
 }
 
 export class DomainError extends Error {}
