@@ -36,7 +36,7 @@ No guardes el campo `clave` en Firestore. Para desactivar un empleado, cambia `a
 
 `config/horario` ya existe en `tvapp-951f9` con 07:00–15:00, cinco minutos, `America/Phoenix` y desfase UTC −7. Refleja el horario fijado en el código y las reglas; editar solo el documento no cambia el cálculo. No necesitas crear `asistencias` ni `comprobaciones`: el primer registro crea ambas colecciones de manera atómica. `comprobaciones` es privado; contiene el hash presentado en cada intento correcto. `asistencias` contiene `{empleadoId, nombre, tipo, timestamp, dia, zonaHoraria, entradaEsperada, salidaEsperada, toleranciaMinutos}`. El estado y minutos de retardo se calculan desde el timestamp del servidor y ese horario guardado.
 
-La zona de Avisos en la TV se dedica a la cámara en vivo. El código actual ya no consulta `tablero`.
+La zona de Avisos en la TV muestra su estado vacío; esta versión Expo Go no transmite cámara en vivo. El código actual no consulta `tablero`.
 
 ## Probar reglas antes de publicar
 
@@ -56,4 +56,4 @@ La suite prueba clave incorrecta, perfil privado, transacción real de entrada/s
 
 El móvil usa `serverTimestamp()` y la TV filtra por día local, ordena por timestamp y muestra hasta 100 registros. El cálculo considera a tiempo hasta las 07:05:00; a partir de las 07:05:01 se marca retardo. La salida anterior a las 15:00 se marca anticipada.
 
-Las reglas protegen perfiles, claves y escrituras de asistencia; bloquean el borrado de `asistencias` y `comprobaciones`. **Limpiar historial** guarda un corte visual en el servidor local de la PC; la TV solo presenta asistencias posteriores. La cámara WebRTC usa ese servidor únicamente para intercambiar mensajes de conexión; no escribe en Firestore. Sin un backend de confianza, Firestore no puede comprobar remotamente que se usó biometría ni imponer un límite de intentos de clave. Úsalo solo con datos ficticios.
+Las reglas protegen perfiles, claves y escrituras de asistencia; bloquean el borrado de `asistencias` y `comprobaciones`. **Limpiar historial** guarda un corte visual en el servidor local de la PC; la TV solo presenta asistencias posteriores. No hay transmisión de cámara. Sin un backend de confianza, Firestore no puede comprobar remotamente que se usó biometría ni imponer un límite de intentos de clave. Úsalo solo con datos ficticios.

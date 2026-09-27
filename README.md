@@ -12,16 +12,9 @@ Checador móvil y pantalla TV hechos en React Native. La pantalla conserva el ta
 
 No se guardan huellas ni rostros. No se utiliza Firebase Authentication, correo, Cloud Functions ni servicios de pago. El horario es 07:00–15:00, con cinco minutos de tolerancia en `America/Phoenix`.
 
-## Ejecutar
+## Ejecutar con Expo Go
 
-```powershell
-npm.cmd ci
-npm.cmd run check
-npm.cmd run android:mobile
-npm.cmd run android:tv
-```
-
-Instala una vez cada Development Build con `android:mobile` en el Redmi conectado por USB y `android:tv` en el emulador Android TV. Después, en **tres terminales separadas**, mantén activos:
+Instala las dependencias una vez con `npm.cmd ci`. Después, en tres terminales dentro de `C:\Users\eberh\TVapp`, ejecuta:
 
 ```powershell
 npm.cmd run local:server
@@ -29,24 +22,11 @@ npm.cmd run mobile
 npm.cmd run tv
 ```
 
-WebRTC requiere código nativo y no funciona en Expo Go. La compilación local necesita Android SDK. El Redmi y la PC deben estar en la misma red local; la biometría se solicita solo en el móvil.
+Cada comando permanece abierto en su propia terminal. Abre el QR de **Mobile** con Expo Go en el Redmi. El servidor de TV usa el puerto 8082 y también inicia en modo Expo Go; la TV puede abrirse en el navegador con `npm.cmd run web -w @tvapp/tv`. El Redmi y la PC deben estar en la misma red local. Si 8081 o 8082 están ocupados, cierra los servidores Metro anteriores antes de reiniciar.
 
-Si tu Android Studio trae Java 25, en la terminal de compilación ejecuta antes:
+Ambas apps necesitan sus archivos `.env` apuntando al mismo proyecto Firebase. En `apps/mobile/.env` agrega `EXPO_PUBLIC_LOCAL_SERVER_URL=ws://IP-DE-TU-PC:8083` usando la dirección que imprime `local:server`; la TV usa `ws://10.0.2.2:8083` en Android emulado y `ws://localhost:8083` en navegador. Reinicia Metro tras editar `.env`. Sigue [la guía de Firestore](docs/FIREBASE.md) para los empleados ficticios.
 
-```powershell
-$env:JAVA_HOME = 'C:\Program Files\Android\Android Studio\jbr'
-$env:JAVA_TOOL_OPTIONS = '--enable-native-access=ALL-UNNAMED'
-$env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
-$env:Path = "$env:JAVA_HOME\bin;$env:ANDROID_HOME\platform-tools;$env:Path"
-```
-
-Para evitar que Expo elija otro dispositivo cuando el Redmi y el emulador estén conectados, instala primero con solo el Redmi conectado y luego inicia el emulador e instala la TV. El Redmi puede desconectarse del USB tras la instalación. Permite a las Development Builds acceder a Metro por la red local.
-
-Los APK de depuración ya compilados se encuentran en `apps/mobile/android/app/build/outputs/apk/debug/app-debug.apk` (ARM64) y `apps/tv/android/app/build/outputs/apk/debug/app-debug.apk` (x86_64). Si quieres instalarlos sin recompilar, conecta un dispositivo a la vez y ejecuta `adb install -r RUTA-DEL-APK`.
-
-Ambas apps necesitan sus archivos `.env` apuntando al mismo proyecto Firebase. En `apps/mobile/.env` agrega `EXPO_PUBLIC_LOCAL_SERVER_URL=ws://IP-DE-TU-PC:8083` usando una de las direcciones impresas por `local:server`; el emulador Android TV usa `ws://10.0.2.2:8083` sin configuración adicional. Reinicia Metro tras editar `.env`. Sigue [la guía de Firestore](docs/FIREBASE.md) para los empleados ficticios. La zona izquierda de la TV muestra la cámara al pulsar **Iniciar cámara en TV** en el Redmi. **Limpiar historial** oculta en la TV los registros anteriores y conserva asistencias y capturas; los nuevos aparecen normalmente.
-
-La transmisión usa WebRTC punto a punto en la red local. La PC solo intercambia mensajes de conexión por WebSocket; no recibe el video. Firestore se usa para asistencia, nunca para video ni señalización. La PC guarda el corte visual de la TV en `runtime/display-state.json`; tampoco borra documentos. Al tomar la foto de asistencia, la transmisión libera la cámara y se reanuda después. Las fotos siguen siendo locales con `expo-camera` y `expo-file-system`. Si se pierde la conexión de video, detén y vuelve a iniciar la cámara en el móvil. Permite el puerto TCP 8083 en el firewall de Windows para la red privada si el Redmi no alcanza la PC.
+**Limpiar historial** oculta en la TV los registros anteriores y conserva asistencias y capturas. La PC guarda el corte visual en `runtime/display-state.json` y no borra documentos de Firebase. Las fotos permanecen en el teléfono mediante `expo-camera` y `expo-file-system`. La zona de Avisos no muestra video en vivo en esta versión Expo Go. Si el Redmi no alcanza el servidor local, permite el puerto TCP 8083 en el firewall de Windows para la red privada.
 
 ## Validación y límites
 

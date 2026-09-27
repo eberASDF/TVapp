@@ -18,7 +18,6 @@ import {
 import { Badge, Message, colors } from "@tvapp/shared/src/ui";
 import { useAnnouncements } from "./src/useAnnouncements";
 import { useVisibleAttendance } from "./src/useVisibleAttendance";
-import { LiveCamera } from "./src/LiveCamera";
 
 export default function App() {
   useKeepAwake();
@@ -84,7 +83,9 @@ export default function App() {
             <Text style={s.boardTitle}>Avisos</Text>
           </View>
           <View style={s.board}>
-            <LiveCamera />
+            <View style={s.empty}>
+              <Text style={s.heading}>Sin avisos por mostrar</Text>
+            </View>
             {announcements.active && (
               <View style={s.toast} accessibilityLiveRegion="polite">
                 <View style={s.toastIcon}>

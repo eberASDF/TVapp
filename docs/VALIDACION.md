@@ -11,6 +11,6 @@ Para probar en dispositivos:
 5. Desconecta la red y comprueba que no se confirma un registro. Reconecta y verifica que la TV se actualiza.
 6. Desactiva el empleado en Firestore y confirma que ya no puede registrar.
 7. Inicia `npm.cmd run local:server` en la PC. Configura la IP LAN impresa en `apps/mobile/.env`; la TV emulada usa `10.0.2.2`. Pulsa **Limpiar historial**: la TV queda sin registros visibles, pero `asistencias` y las fotos de **Capturas** permanecen. Un registro posterior aparece en la TV. Reinicia la TV y verifica que el corte visual persiste.
-8. Con el Redmi y la PC en la misma red local, y ambas Development Builds abiertas, pulsa **Iniciar cámara en TV**. Comprueba video de la cámara real y que una entrada/salida toma su foto local y reanuda el video.
+8. Abre Mobile en Expo Go, registra una entrada o salida y comprueba que la foto automática queda en **Capturas**. La zona de Avisos de la TV permanece sin video en vivo.
 
-La prueba automatizada del sensor no sustituye una prueba física en el teléfono. WebRTC no funciona en Expo Go; el video, la foto y la voz local requieren prueba en las compilaciones Android.
+La prueba automatizada del sensor no sustituye una prueba física en el teléfono. Mobile y TV arrancan en modo Expo Go; la foto y la voz local requieren prueba en los dispositivos.

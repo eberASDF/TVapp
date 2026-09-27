@@ -20,7 +20,7 @@ const next = (socket) => new Promise((resolve, reject) => {
 });
 const send = (socket, message) => socket.send(JSON.stringify(message));
 
-test("corte visual persistente y señalización local sin Firestore", async () => {
+test("corte visual persistente sin borrar Firestore", async () => {
   const directory = await mkdtemp(join(tmpdir(), "tvapp-local-"));
   const stateFile = join(directory, "display-state.json");
   const server = await startLocalServer({ port: 0, stateFile });
@@ -48,19 +48,6 @@ test("corte visual persistente y señalización local sin Firestore", async () =
     send(anotherTv, { type: "hello", role: "tv-history" });
     assert.deepEqual(await replay, changed);
 
-    const tvCamera = await open(url); sockets.push(tvCamera);
-    send(tvCamera, { type: "hello", role: "tv-camera" });
-    const mobileCamera = await open(url); sockets.push(mobileCamera);
-    send(mobileCamera, { type: "hello", role: "mobile-camera" });
-    const offer = next(tvCamera);
-    send(mobileCamera, { type: "offer", sessionId: "demo-1", sdp: "v=0\r\n" });
-    assert.deepEqual(await offer, { type: "offer", sessionId: "demo-1", sdp: "v=0\r\n" });
-    const answer = next(mobileCamera);
-    send(tvCamera, { type: "answer", sessionId: "demo-1", sdp: "v=0\r\n" });
-    assert.deepEqual(await answer, { type: "answer", sessionId: "demo-1", sdp: "v=0\r\n" });
-    const stopped = next(tvCamera);
-    send(mobileCamera, { type: "stop" });
-    assert.deepEqual(await stopped, { type: "stop" });
   } finally {
     for (const socket of sockets) socket.terminate();
     await server.close();
