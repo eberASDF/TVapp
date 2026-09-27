@@ -4,7 +4,7 @@
   "private": true,
   "main": "index.ts",
   "scripts": {
-    "start": "expo start --go --port 8082",
+    "start": "node ../../scripts/start-tv.mjs",
     "android": "expo run:android --port 8082",
     "web": "expo start --web --port 8082",
     "typecheck": "tsc --noEmit",

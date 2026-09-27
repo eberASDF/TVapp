@@ -28,7 +28,7 @@ import {
 import { Action, Field, Message, colors, ui } from "@tvapp/shared/src/ui";
 import { withBiometricConfirmation } from "./src/biometricPunch";
 import { employeeCredential } from "./src/identity";
-import { Capture, discardStagedCapture, loadCaptures, saveCapture, stageCapture } from "./src/captures";
+import { Capture, clearCaptures, discardStagedCapture, loadCaptures, saveCapture, stageCapture } from "./src/captures";
 import { createThumbnail } from "./src/thumbnail";
 import { clearTvHistory } from "./src/clearTvHistory";
 
@@ -171,6 +171,21 @@ function Main() {
     }
   }
 
+  function confirmClearCaptures() {
+    Alert.alert("Limpiar capturas", "Se eliminarán solo las fotos guardadas en este teléfono. Los registros de Firebase permanecerán.", [
+      { text: "Cancelar", style: "cancel" },
+      { text: "Limpiar capturas", onPress: () => {
+        try {
+          clearCaptures();
+          setCaptures([]);
+          setError("");
+        } catch (cause) {
+          setError(readableError(cause));
+        }
+      } },
+    ]);
+  }
+
   return (
     <>
       <ScrollView contentContainerStyle={styles.container}>
@@ -205,6 +220,9 @@ function Main() {
             </Pressable>
           </View>
         </> : <>
+          <Pressable accessibilityRole="button" onPress={confirmClearCaptures} disabled={busy || captures.length === 0}>
+            <Text style={styles.link}>Limpiar capturas</Text>
+          </Pressable>
           {captures.length === 0 && <Text style={styles.empty}>Aún no hay capturas.</Text>}
           {captures.map((capture) => (
             <View style={styles.captureRow} key={capture.id}>

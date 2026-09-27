@@ -106,7 +106,7 @@ export default function App() {
               </View>
             ) : (
               <View style={s.empty}>
-                <Text style={s.heading}>Sin avisos por mostrar</Text>
+                <Text style={s.heading}>Esperando registros</Text>
               </View>
             )}
           </View>
@@ -199,13 +199,6 @@ const styles = (z: number) =>
       padding: 26 * z,
       paddingBottom: 16 * z,
     },
-    login: {
-      flex: 1,
-      backgroundColor: colors.bg,
-      justifyContent: "center",
-      alignItems: "center",
-      gap: 24,
-    },
     topbar: {
       flexDirection: "row",
       alignItems: "center",
@@ -278,37 +271,7 @@ const styles = (z: number) =>
       borderTopWidth: 1,
       borderTopColor: colors.border,
     },
-    noticeOverlay: { ...StyleSheet.absoluteFill, backgroundColor: colors.bg },
     empty: { flex: 1, justifyContent: "center", padding: 40 * z, gap: 15 * z },
-    boardBottom: {
-      flexDirection: "row",
-      justifyContent: "center",
-      alignItems: "center",
-      paddingVertical: 2 * z,
-    },
-    dots: { flexDirection: "row", gap: 6 * z },
-    carouselDot: {
-      width: 5 * z,
-      height: 5 * z,
-      borderRadius: 5 * z,
-      backgroundColor: colors.border,
-    },
-    activeDot: { width: 22 * z, backgroundColor: colors.teal },
-    notice: {
-      flex: 1,
-      padding: 38 * z,
-      backgroundColor: colors.bg,
-      justifyContent: "center",
-      overflow: "hidden",
-    },
-    hero: {
-      fontSize: 49 * z,
-      lineHeight: 55 * z,
-      fontWeight: "600",
-      letterSpacing: -1.8 * z,
-      color: "#ecf4ef",
-    },
-    heroBody: { fontSize: 16 * z, lineHeight: 25 * z, color: "#b9cfca" },
     attendanceHeading: {
       flexDirection: "row",
       alignItems: "center",
@@ -373,10 +336,4 @@ const styles = (z: number) =>
     liveType: { color: colors.teal, fontSize: 22 * z, fontWeight: "600" },
     liveTime: { color: colors.text, fontSize: 27 * z, fontVariant: ["tabular-nums"] },
     liveStatus: { color: colors.muted, fontSize: 17 * z },
-    footer: {
-      flexDirection: "row",
-      justifyContent: "flex-end",
-      alignItems: "center",
-      paddingTop: 14 * z,
-    },
   });
