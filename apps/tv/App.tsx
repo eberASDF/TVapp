@@ -33,7 +33,7 @@ export default function App() {
   const announcements = useAnnouncements(
     rows,
     live.cached,
-    live.ready && visible.ready,
+    live.ready,
     `${live.date}:${visible.scope}`,
   );
 
@@ -126,9 +126,11 @@ export default function App() {
           >
             {!rows.length && (
               <Text style={s.body}>
-                {live.ready && visible.ready
-                  ? "Los registros aparecerán aquí al checar."
-                  : "Conectando…"}
+                {configurationError || live.error
+                  ? "No se pudo cargar la asistencia."
+                  : live.ready
+                    ? "Los registros aparecerán aquí al checar."
+                    : "Conectando…"}
               </Text>
             )}
             {rows.map((row) => (

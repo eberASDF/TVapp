@@ -3,8 +3,7 @@ import { Attendance } from "@tvapp/shared";
 import { localServerUrl } from "./localServer";
 
 export function useVisibleAttendance(rows: Attendance[]) {
-  const [cutoff, setCutoff] = useState<number | null>(null);
-  const [ready, setReady] = useState(false);
+  const [cutoff, setCutoff] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -19,12 +18,10 @@ export function useVisibleAttendance(rows: Attendance[]) {
           const message = JSON.parse(String(event.data));
           if (message.type === "cutoff" && Number.isSafeInteger(message.value) && message.value >= 0) {
             setCutoff(message.value);
-            setReady(true);
           }
         } catch { /* Ignorar mensajes ajenos al protocolo. */ }
       };
       socket.onclose = () => {
-        setReady(false);
         if (!cancelled) retry = setTimeout(connect, 2000);
       };
     };
@@ -37,8 +34,7 @@ export function useVisibleAttendance(rows: Attendance[]) {
   }, []);
 
   return {
-    rows: useMemo(() => ready ? rows.filter((row) => row.timestamp > (cutoff ?? 0)) : [], [rows, cutoff, ready]),
-    ready,
-    scope: String(cutoff ?? 0),
+    rows: useMemo(() => rows.filter((row) => row.timestamp > cutoff), [rows, cutoff]),
+    scope: String(cutoff),
   };
 }

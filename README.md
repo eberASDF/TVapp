@@ -22,7 +22,7 @@ npm.cmd run mobile
 npm.cmd run tv
 ```
 
-Cada comando permanece abierto en su propia terminal. Abre el QR de **Mobile** con Expo Go en el Redmi. El servidor de TV usa el puerto 8082 y también inicia en modo Expo Go; la TV puede abrirse en el navegador con `npm.cmd run web -w @tvapp/tv`. El Redmi y la PC deben estar en la misma red local. Si 8081 o 8082 están ocupados, cierra los servidores Metro anteriores antes de reiniciar.
+Cada comando permanece abierto en su propia terminal. Abre el QR de **Mobile** con Expo Go en el Redmi. El servidor de TV usa el puerto 8082 y también inicia en modo Expo Go; la TV puede abrirse en el navegador con `npm.cmd run web -w @tvapp/tv`. El servidor `local:server` solo sincroniza **Limpiar historial**: la asistencia se lee directamente de Firestore aunque ese servidor no esté disponible. El Redmi y la PC deben estar en la misma red local. Si 8081 o 8082 están ocupados, cierra los servidores Metro anteriores antes de reiniciar.
 
 Ambas apps necesitan sus archivos `.env` apuntando al mismo proyecto Firebase. En `apps/mobile/.env` agrega `EXPO_PUBLIC_LOCAL_SERVER_URL=ws://IP-DE-TU-PC:8083` usando la dirección que imprime `local:server`; la TV usa `ws://10.0.2.2:8083` en Android emulado y `ws://localhost:8083` en navegador. Reinicia Metro tras editar `.env`. Sigue [la guía de Firestore](docs/FIREBASE.md) para los empleados ficticios.
 

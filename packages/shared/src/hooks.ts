@@ -51,33 +51,56 @@ export function useAttendance(
   useEffect(() => {
     setState({ rows: [], error: "", cached: true, ready: false });
     if (!services || !enabled) return;
+    const reportError = (error: unknown) => {
+      console.error("[TVapp] Falló onSnapshot de asistencias en Firestore:", error);
+      setState((previous) => ({
+        rows: previous.rows,
+        error: error instanceof Error ? error.message : readableError(error),
+        cached: true,
+        ready: previous.ready,
+      }));
+    };
     const constraints = [
       where("dia", "==", dia),
       ...(uid ? [where("empleadoId", "==", uid)] : []),
       orderBy("timestamp", "desc"),
       limit(100),
     ];
-    return onSnapshot(
-      query(collection(services.db, "asistencias"), ...constraints),
-      { includeMetadataChanges: true },
-      (snap) => {
-        setState({
-          rows: snap.docs
-            .filter((d) => !d.metadata.hasPendingWrites && d.data().timestamp)
-            .map((d) => attendanceFromFirestore(d.id, d.data(), schedule)),
-          error: "",
-          cached: snap.metadata.fromCache,
-          ready: true,
-        });
-      },
-      (error) =>
-        setState({
-          rows: [],
-          error: readableError(error),
-          cached: true,
-          ready: false,
-        }),
-    );
+    let received = false;
+    const timeout = setTimeout(() => {
+      if (!received) reportError(new Error("Firestore no respondió en 15 segundos."));
+    }, 15000);
+    try {
+      const unsubscribe = onSnapshot(
+        query(collection(services.db, "asistencias"), ...constraints),
+        { includeMetadataChanges: true },
+        (snap) => {
+          received = true;
+          clearTimeout(timeout);
+          try {
+            setState({
+              rows: snap.docs
+                .filter((d) => !d.metadata.hasPendingWrites && d.data().timestamp)
+                .map((d) => attendanceFromFirestore(d.id, d.data(), schedule)),
+              error: "",
+              cached: snap.metadata.fromCache,
+              ready: true,
+            });
+          } catch (error) {
+            reportError(error);
+          }
+        },
+        (error) => {
+          received = true;
+          clearTimeout(timeout);
+          reportError(error);
+        },
+      );
+      return () => { clearTimeout(timeout); unsubscribe(); };
+    } catch (error) {
+      clearTimeout(timeout);
+      reportError(error);
+    }
   }, [enabled, dia, uid, schedule]);
   return { ...state, date };
 }
