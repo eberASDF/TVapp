@@ -4,14 +4,15 @@ Verificado localmente el 26 de septiembre de 2026:
 
 | Comprobación | Resultado |
 | --- | --- |
-| `npm.cmd run check` | TypeScript de ambas apps y 15 pruebas aprobadas |
-| Firestore Emulator | 8 pruebas aprobadas; borrado emparejado y TV vacía tras limpiar historial |
+| `npm.cmd run check` | TypeScript de ambas apps y 16 pruebas aprobadas, incluida señalización WebSocket local y corte visual persistente |
+| Firestore Emulator | 9 pruebas aprobadas; se rechaza el borrado de asistencia y el acceso a las antiguas rutas de cámara/corte |
 | Registro real del código móvil | Transacción de entrada y salida aceptada con `serverTimestamp()` |
 | TV en tiempo real | `onSnapshot` recibió la entrada creada por el móvil |
-| Reglas | Rechazan clave incorrecta, perfil inactivo, duplicados, salida sin entrada, campos alterados, edición y borrado aislado de registros |
+| Reglas | Rechazan clave incorrecta, perfil inactivo, duplicados, salida sin entrada, campos alterados y todo borrado cliente de registros |
 | Datos privados | `empleados` y `comprobaciones` no admiten lectura cliente |
-| Publicación de reglas | Complemento Firebase publicó las reglas e índices en `tvapp-951f9`; lectura posterior confirmó el borrado emparejado |
-| Paquetes Android | Expo exportó correctamente los bundles móvil y TV con la interfaz nueva |
+| Publicación de reglas | Complemento Firebase publicó las reglas en `tvapp-951f9`; lectura posterior confirmó el bloqueo de borrado y de las antiguas rutas de cámara/corte |
+| Bundles Android | Expo exportó correctamente móvil y TV con WebRTC |
+| Development Builds | APK ARM64 del Redmi y APK x86_64 de TV compilados; ambos incluyen `libjingle_peerconnection_so.so` |
 | Creador de empleado | `node scripts/new-employee.mjs` generó ID y hash de un ejemplo ficticio |
 
-Pendiente: probar en un teléfono la foto automática y la pantalla TV conectada al proyecto real. Usa solo empleados ficticios; la lectura y el borrado emparejado de asistencia son públicos por decisión de esta versión escolar. Firestore no puede verificar que un cliente modificado haya usado el sensor biométrico. La cámara en vivo teléfono→TV queda pendiente por la limitación de Expo Go.
+Pendiente: instalar los APK y probar con el Redmi 13C físico y el emulador Android TV el video WebRTC, la foto automática y el reinicio de cámara tras registrar. Ninguno estaba conectado por ADB durante esta validación. Usa solo empleados ficticios; la lectura de asistencia es pública para esta demo escolar. Firestore no puede verificar que un cliente modificado haya usado el sensor biométrico.

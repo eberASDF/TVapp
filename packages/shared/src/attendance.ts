@@ -3,11 +3,8 @@ import {
   Timestamp,
   doc,
   getDocFromServer,
-  getDocsFromServer,
-  collection,
   runTransaction,
   serverTimestamp,
-  writeBatch,
 } from "firebase/firestore";
 import { services } from "./firebase";
 import {
@@ -102,20 +99,4 @@ export async function registerAttendance(
     recordSnap.data(),
     schedule,
   );
-}
-
-export async function clearAttendanceHistory(): Promise<number> {
-  const firebase = services;
-  if (!firebase) throw new Error("Firebase no está configurado.");
-  const records = await getDocsFromServer(collection(firebase.db, "asistencias"));
-  const docs = records.docs;
-  for (let start = 0; start < docs.length; start += 200) {
-    const batch = writeBatch(firebase.db);
-    for (const record of docs.slice(start, start + 200)) {
-      batch.delete(record.ref);
-      batch.delete(doc(firebase.db, "comprobaciones", record.id));
-    }
-    await batch.commit();
-  }
-  return docs.length;
 }

@@ -67,10 +67,10 @@ async function pairedWrite(db, person, tipo, overrideRecord = {}, overrideProof 
   return batch.commit();
 }
 
-test("TV anónima lee registros y tablero; claves y comprobaciones son privadas", async () => {
+test("TV anónima lee solo asistencias; claves y comprobaciones son privadas", async () => {
   const db = client();
   await assertSucceeds(getDocs(collection(db, "asistencias")));
-  await assertSucceeds(getDoc(doc(db, "tablero/aviso")));
+  await assertFails(getDoc(doc(db, "tablero/aviso")));
   await assertFails(getDoc(doc(db, "empleados/ana-lopez")));
   await assertFails(getDocs(collection(db, "empleados")));
   await assertFails(getDoc(doc(db, "comprobaciones", idFor("ana-lopez", "entrada"))));
@@ -140,25 +140,19 @@ test("rechaza alteraciones de identidad, hora, día, horario y biometría", asyn
   await assertFails(pairedWrite(db, person, "entrada", {}, { claveHash: "0".repeat(64) }));
 });
 
-test("borrado público retira asistencia de la TV y permite registrar de nuevo", async () => {
+test("no se pueden borrar asistencias ni comprobaciones, incluso en pareja", async () => {
   const db = client();
   const person = employee("limpiable", "Limpiable");
   const id = idFor(person.id, "entrada");
   await assertSucceeds(pairedWrite(db, person, "entrada"));
   await assertFails(deleteDoc(doc(db, "asistencias", id)));
   await assertFails(deleteDoc(doc(db, "comprobaciones", id)));
-  const removed = new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error("TV no retiró el registro")), 10000);
-    const off = onSnapshot(doc(db, "asistencias", id), (snap) => {
-      if (!snap.exists()) { clearTimeout(timeout); off(); resolve(); }
-    }, reject);
-  });
   const batch = writeBatch(db);
   batch.delete(doc(db, "asistencias", id));
   batch.delete(doc(db, "comprobaciones", id));
-  await assertSucceeds(batch.commit());
-  await removed;
-  await assertSucceeds(pairedWrite(db, person, "entrada"));
+  await assertFails(batch.commit());
+  assert.equal((await getDoc(doc(db, "asistencias", id))).exists(), true);
+  await assertFails(pairedWrite(db, person, "entrada"));
 });
 
 test("nadie crea empleados ni modifica registros o claves desde la app", async () => {
@@ -171,19 +165,22 @@ test("nadie crea empleados ni modifica registros o claves desde la app", async (
   await assertFails(setDoc(doc(db, "tablero/nuevo"), { titulo: "Texto" }));
 });
 
-test("Limpiar historial elimina registros y comprobaciones; TV queda vacía", async () => {
+test("un corte local no borra asistencias y Firestore bloquea documentos de pantalla", async () => {
   const db = client();
   const person = employee("limpiable", "Limpiable");
   const id = idFor(person.id, "entrada");
-  const empty = new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error("TV no vació el historial")), 10000);
-    const off = onSnapshot(query(collection(db, "asistencias"), where("dia", "==", dia), orderBy("timestamp", "desc"), limit(100)), (snap) => {
-      if (snap.empty) { clearTimeout(timeout); off(); resolve(); }
-    }, reject);
-  });
-  const { clearAttendanceHistory } = attendanceFor(db);
-  assert.ok((await clearAttendanceHistory()) >= 1);
-  await empty;
-  await assertSucceeds(pairedWrite(db, person, "entrada"));
   assert.equal((await getDoc(doc(db, "asistencias", id))).exists(), true);
+  await env.withSecurityRulesDisabled(async (context) => {
+    assert.equal((await getDoc(doc(context.firestore(), "comprobaciones", id))).exists(), true);
+  });
+  await assertFails(setDoc(doc(db, "pantalla", "historial"), { mostrarDesde: serverTimestamp() }));
+  await assertFails(getDoc(doc(db, "pantalla", "historial")));
+});
+
+test("Firestore no acepta ni expone señalización de cámara", async () => {
+  const db = client();
+  const offer = doc(db, "cameraSignal", "offer");
+  await assertFails(setDoc(offer, { sessionId: "demo-1", sdp: "v=0\r\n", active: true, updatedAt: serverTimestamp() }));
+  await assertFails(getDoc(offer));
+  await assertFails(deleteDoc(offer));
 });

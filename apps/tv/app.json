@@ -10,6 +10,8 @@
       "package": "com.eberasdf.tvapp.display"
     },
     "plugins": [
+      "expo-dev-client",
+      "@config-plugins/react-native-webrtc",
       [
         "@react-native-tvos/config-tv",
         {

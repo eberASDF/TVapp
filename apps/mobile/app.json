@@ -13,6 +13,8 @@
       "supportsTablet": true
     },
     "plugins": [
+      "expo-dev-client",
+      "@config-plugins/react-native-webrtc",
       [
         "expo-local-authentication",
         {

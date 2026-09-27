@@ -16,7 +16,6 @@ import { Camera, CameraView } from "expo-camera";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import {
   PunchType,
-  clearAttendanceHistory,
   configurationError,
   defaultSchedule,
   readableError,
@@ -28,7 +27,9 @@ import {
 import { Action, Field, Message, colors, ui } from "@tvapp/shared/src/ui";
 import { withBiometricConfirmation } from "./src/biometricPunch";
 import { employeeCredential } from "./src/identity";
-import { Capture, clearCaptures, loadCaptures, saveCapture } from "./src/captures";
+import { Capture, loadCaptures, saveCapture } from "./src/captures";
+import { useLiveCamera } from "./src/useLiveCamera";
+import { clearTvHistory } from "./src/clearTvHistory";
 
 export default function App() {
   return (
@@ -55,13 +56,14 @@ function Main() {
   const punching = useRef(false);
   const cameraRef = useRef<CameraView>(null);
   const cameraAction = useRef<(() => void) | null>(null);
+  const liveCamera = useLiveCamera();
 
   useEffect(() => {
     void loadCaptures().then(setCaptures).catch((cause) => setError(readableError(cause)));
   }, []);
 
   async function startPunch(tipo: PunchType) {
-    if (punching.current || !services) return;
+    if (punching.current || liveCamera.busy || !services) return;
     punching.current = true;
     setBusy(true);
     setError("");
@@ -119,12 +121,21 @@ function Main() {
       setNombre("");
       setClave("");
       setMessage(tipo === "entrada" ? "Bienvenido a tu turno" : "Gracias por completar tu turno");
+      const resumeLive = liveCamera.active;
       try {
+        if (resumeLive) {
+          await liveCamera.stop().catch(() => {});
+          await new Promise((resolve) => setTimeout(resolve, 300));
+        }
         const uri = await takePhoto();
         const capture = await saveCapture(result, uri);
         setCaptures((previous) => [capture, ...previous.filter((item) => item.id !== capture.id)]);
       } catch {
         setError("La asistencia se registró, pero no se pudo guardar la foto.");
+      } finally {
+        if (resumeLive) setTimeout(() => {
+          void liveCamera.start().catch(() => setError("La cámara en vivo no se reanudó; vuelve a iniciarla."));
+        }, 500);
       }
     } catch (e) {
       setError(readableError(e));
@@ -137,9 +148,9 @@ function Main() {
   }
 
   function confirmClear() {
-    Alert.alert("Limpiar historial", "Se borrarán todas las asistencias de Firestore y las capturas de este teléfono.", [
+    Alert.alert("Limpiar historial", "La TV mostrará solo los registros nuevos. Las asistencias y las capturas seguirán guardadas.", [
       { text: "Cancelar", style: "cancel" },
-      { text: "Eliminar todo", style: "destructive", onPress: () => { void clearHistory(); } },
+      { text: "Limpiar TV", onPress: () => { void clearHistory(); } },
     ]);
   }
 
@@ -149,11 +160,9 @@ function Main() {
     setError("");
     setMessage("");
     try {
-      await clearAttendanceHistory();
-      clearCaptures();
-      setCaptures([]);
+      await clearTvHistory();
       setScreen("home");
-      setMessage("Historial limpiado.");
+      setMessage("Historial de la TV limpiado.");
     } catch (cause) {
       setError(readableError(cause));
     } finally {
@@ -180,8 +189,8 @@ function Main() {
             }).format(now)}</Text>
           </View>
           <View style={styles.actions}>
-            <Action label="Registrar entrada" onPress={() => startPunch("entrada")} disabled={busy || !services} />
-            <Action label="Registrar salida" onPress={() => startPunch("salida")} disabled={busy || !services} secondary />
+            <Action label="Registrar entrada" onPress={() => startPunch("entrada")} disabled={busy || liveCamera.busy || !services} />
+            <Action label="Registrar salida" onPress={() => startPunch("salida")} disabled={busy || liveCamera.busy || !services} secondary />
             {busy && <ActivityIndicator color={colors.teal} />}
             <Message text={message} />
             <Message text={error || configurationError || ""} error />
@@ -194,6 +203,14 @@ function Main() {
               <Text style={styles.link}>Limpiar historial</Text>
             </Pressable>
           </View>
+          <Pressable accessibilityRole="button" disabled={busy || liveCamera.busy}
+            onPress={() => {
+              const action = liveCamera.active ? liveCamera.stop() : liveCamera.start();
+              void action.catch((cause) => setError(readableError(cause)));
+            }}>
+            <Text style={styles.link}>{liveCamera.active ? "Detener cámara en TV" : "Iniciar cámara en TV"}</Text>
+          </Pressable>
+          {!!liveCamera.status && <Text style={styles.cameraHint}>{liveCamera.status}</Text>}
         </> : <>
           {captures.length === 0 && <Text style={styles.empty}>Aún no hay capturas.</Text>}
           {captures.map((capture) => (
@@ -253,4 +270,5 @@ const styles = StyleSheet.create({
   captureOverlay: { position: "absolute", top: 0, right: 0, bottom: 0, left: 0, backgroundColor: colors.bg },
   captureCamera: { flex: 1 },
   captureStatus: { position: "absolute", bottom: 30, alignSelf: "center", color: colors.text, fontSize: 15, fontWeight: "600" },
+  cameraHint: { color: colors.muted, fontSize: 13 },
 });

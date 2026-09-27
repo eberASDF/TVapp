@@ -14,7 +14,7 @@ EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=
 EXPO_PUBLIC_EMULATOR_HOST=
 ```
 
-`API_KEY`, `PROJECT_ID` y `APP_ID` son necesarios. `STORAGE_BUCKET` puede quedar vacío para el checador y los avisos de texto. Reinicia Metro tras cambiar `.env`. No pongas claves de empleado ni credenciales administrativas en variables `EXPO_PUBLIC_*`.
+`API_KEY`, `PROJECT_ID` y `APP_ID` son necesarios. `STORAGE_BUCKET` puede quedar vacío. En `apps/mobile/.env` agrega `EXPO_PUBLIC_LOCAL_SERVER_URL=ws://IP-DE-TU-PC:8083`, con la IP LAN que imprime `npm.cmd run local:server`. La TV emulada usa `ws://10.0.2.2:8083` automáticamente. Reinicia Metro tras cambiar `.env`. No pongas claves de empleado ni credenciales administrativas en variables `EXPO_PUBLIC_*`.
 
 ## Crear un empleado ficticio
 
@@ -36,7 +36,7 @@ No guardes el campo `clave` en Firestore. Para desactivar un empleado, cambia `a
 
 `config/horario` ya existe en `tvapp-951f9` con 07:00–15:00, cinco minutos, `America/Phoenix` y desfase UTC −7. Refleja el horario fijado en el código y las reglas; editar solo el documento no cambia el cálculo. No necesitas crear `asistencias` ni `comprobaciones`: el primer registro crea ambas colecciones de manera atómica. `comprobaciones` es privado; contiene el hash presentado en cada intento correcto. `asistencias` contiene `{empleadoId, nombre, tipo, timestamp, dia, zonaHoraria, entradaEsperada, salidaEsperada, toleranciaMinutos}`. El estado y minutos de retardo se calculan desde el timestamp del servidor y ese horario guardado.
 
-Opcionalmente, crea un aviso de texto en `tablero/{id}` con `titulo`, `texto`, `tipo: "aviso"`, `storagePath: ""`, `activo: true`, `orden: 0` y `duracionSegundos: 10`. La TV muestra los registros aunque no haya avisos.
+La zona de Avisos en la TV se dedica a la cámara en vivo. El código actual ya no consulta `tablero`.
 
 ## Probar reglas antes de publicar
 
@@ -48,7 +48,7 @@ $env:Path = "$env:JAVA_HOME\bin;$env:Path"
 .\node_modules\.bin\firebase.cmd emulators:exec --project demo-tvapp --only firestore "node --test tests/firestore.rules.test.mjs"
 ```
 
-La suite prueba clave incorrecta, perfil privado, transacción real de entrada/salida, duplicados, salida sin entrada, alteraciones de campos, borrado de historial y la lectura en vivo con `onSnapshot`. Usa el proyecto de demostración; no toca datos reales. Tras pasarla, publica solo las reglas e índices de Firestore:
+La suite prueba clave incorrecta, perfil privado, transacción real de entrada/salida, duplicados, salida sin entrada, alteraciones de campos, denegación de borrado y lectura en vivo con `onSnapshot`. También confirma que las antiguas rutas de limpieza y señalización no son accesibles. Usa el proyecto de demostración; no toca datos reales. Tras pasarla, publica solo las reglas e índices de Firestore:
 
 ```powershell
 .\node_modules\.bin\firebase.cmd deploy --project tvapp-951f9 --only firestore
@@ -56,4 +56,4 @@ La suite prueba clave incorrecta, perfil privado, transacción real de entrada/s
 
 El móvil usa `serverTimestamp()` y la TV filtra por día local, ordena por timestamp y muestra hasta 100 registros. El cálculo considera a tiempo hasta las 07:05:00; a partir de las 07:05:01 se marca retardo. La salida anterior a las 15:00 se marca anticipada.
 
-Las reglas protegen perfiles, claves y escrituras de asistencia. Para esta demo, el borrado de `asistencias` y `comprobaciones` es público, por lo que cualquier cliente con la configuración del proyecto puede limpiar el historial. Sin Authentication ni servidor, Firestore no puede comprobar remotamente que se usó biometría ni imponer un límite de intentos de clave. La biometría sigue siendo una condición de la app móvil oficial. Úsalo solo con datos ficticios.
+Las reglas protegen perfiles, claves y escrituras de asistencia; bloquean el borrado de `asistencias` y `comprobaciones`. **Limpiar historial** guarda un corte visual en el servidor local de la PC; la TV solo presenta asistencias posteriores. La cámara WebRTC usa ese servidor únicamente para intercambiar mensajes de conexión; no escribe en Firestore. Sin un backend de confianza, Firestore no puede comprobar remotamente que se usó biometría ni imponer un límite de intentos de clave. Úsalo solo con datos ficticios.

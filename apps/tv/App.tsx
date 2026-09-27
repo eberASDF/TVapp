@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -8,52 +8,35 @@ import {
 } from "react-native";
 import { useKeepAwake } from "expo-keep-awake";
 import {
-  ContentItem,
   configurationError,
   defaultSchedule,
   statusLabels,
   timeLabel,
   useAttendance,
   useClock,
-  useContent,
 } from "@tvapp/shared";
 import { Badge, Message, colors } from "@tvapp/shared/src/ui";
-import { Media } from "./src/Media";
 import { useAnnouncements } from "./src/useAnnouncements";
+import { useVisibleAttendance } from "./src/useVisibleAttendance";
+import { LiveCamera } from "./src/LiveCamera";
 
 export default function App() {
   useKeepAwake();
   const now = useClock();
   const schedule = defaultSchedule;
   const live = useAttendance(true, schedule);
-  const remote = useContent(true);
-  const rows = live.rows;
-  const items = useMemo(
-    () => remote.items.filter((item) => item.activo),
-    [remote.items],
-  );
-  const [index, setIndex] = useState(0);
-  const [paused, setPaused] = useState(false);
-  const item = items[index % Math.max(1, items.length)];
+  const visible = useVisibleAttendance(live.rows);
+  const rows = visible.rows;
   const { width, height } = useWindowDimensions();
   const scale = Math.max(0.4, Math.min(1.75, width / 1280, height / 720));
   const s = useMemo(() => styles(scale), [scale]);
   const announcements = useAnnouncements(
     rows,
     live.cached,
-    live.ready,
-    live.date,
+    live.ready && visible.ready,
+    `${live.date}:${visible.scope}`,
   );
 
-  useEffect(() => setIndex(0), [items]);
-  useEffect(() => {
-    if (paused || !item || items.length < 2) return;
-    const timer = setTimeout(
-      () => setIndex((previous) => (previous + 1) % items.length),
-      item.duracionSegundos * 1000,
-    );
-    return () => clearTimeout(timer);
-  }, [index, item, items.length, paused]);
   return (
     <View style={s.root}>
       <View style={s.topbar}>
@@ -101,17 +84,7 @@ export default function App() {
             <Text style={s.boardTitle}>Avisos</Text>
           </View>
           <View style={s.board}>
-            {item ? (
-              item.tipo === "aviso" ? (
-                <Notice item={item} scale={scale} />
-              ) : (
-                <Media key={item.id + item.storagePath} item={item} />
-              )
-            ) : (
-              <View style={s.empty}>
-                <Text style={s.heading}>Sin avisos por mostrar</Text>
-              </View>
-            )}
+            <LiveCamera />
             {announcements.active && (
               <View style={s.toast} accessibilityLiveRegion="polite">
                 <View style={s.toastIcon}>
@@ -139,21 +112,6 @@ export default function App() {
               </View>
             )}
           </View>
-          {items.length > 1 && (
-            <View style={s.boardBottom}>
-              <View style={s.dots}>
-                {items.map((it, i) => (
-                  <View
-                    key={it.id}
-                    style={[
-                      s.carouselDot,
-                      i === index % items.length && s.activeDot,
-                    ]}
-                  />
-                ))}
-              </View>
-            </View>
-          )}
         </View>
         <View style={s.attendanceColumn}>
           <View style={s.attendanceHeading}>
@@ -170,7 +128,7 @@ export default function App() {
           >
             {!rows.length && (
               <Text style={s.body}>
-                {live.ready
+                {live.ready && visible.ready
                   ? "Los registros aparecerán aquí al checar."
                   : "Conectando…"}
               </Text>
@@ -217,7 +175,6 @@ export default function App() {
       {!!(
         configurationError ||
         live.error ||
-        remote.error ||
         announcements.audioError
       ) && (
         <View style={{ paddingHorizontal: 24 }}>
@@ -226,23 +183,11 @@ export default function App() {
             text={
               configurationError ||
               live.error ||
-              remote.error ||
               announcements.audioError
             }
           />
         </View>
       )}
-    </View>
-  );
-}
-function Notice({ item, scale }: { item: ContentItem; scale: number }) {
-  const s = styles(scale);
-  return (
-    <View style={s.notice}>
-      <View style={{ maxWidth: "82%", gap: 24 * scale }}>
-        <Text style={s.hero}>{item.titulo}</Text>
-        <Text style={s.heroBody}>{item.texto}</Text>
-      </View>
     </View>
   );
 }
@@ -333,6 +278,7 @@ const styles = (z: number) =>
       borderTopWidth: 1,
       borderTopColor: colors.border,
     },
+    noticeOverlay: { ...StyleSheet.absoluteFill, backgroundColor: colors.bg },
     empty: { flex: 1, justifyContent: "center", padding: 40 * z, gap: 15 * z },
     boardBottom: {
       flexDirection: "row",

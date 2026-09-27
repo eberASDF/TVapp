@@ -7,12 +7,14 @@
     "packages/*"
   ],
   "scripts": {
+    "postinstall": "patch-package",
+    "local:server": "node scripts/local-server.mjs",
     "mobile": "npm run start -w @tvapp/mobile",
     "tv": "npm run start -w @tvapp/tv",
     "android:mobile": "npm run android -w @tvapp/mobile",
     "android:tv": "npm run android -w @tvapp/tv",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "test": "node --test tests/domain.test.mjs tests/tv-speech.test.mjs tests/mobile-biometrics.test.mjs",
+    "test": "node --test tests/domain.test.mjs tests/tv-speech.test.mjs tests/mobile-biometrics.test.mjs tests/local-server.test.mjs",
     "check": "npm run typecheck && npm test",
     "test:rules": "node --test tests/firestore.rules.test.mjs",
     "emulators": "firebase emulators:start --project demo-tvapp --only firestore",
@@ -23,6 +25,7 @@
     "@types/node": "^22.0.0",
     "@types/react": "~19.2.2",
     "firebase-tools": "^15.30.2",
+    "patch-package": "^8.0.1",
     "prettier": "^3.6.2",
     "typescript": "~5.9.2"
   },
@@ -31,6 +34,7 @@
   },
   "dependencies": {
     "react": "19.2.3",
-    "react-native": "npm:react-native-tvos@0.86.3-0"
+    "react-native": "npm:react-native-tvos@0.86.3-0",
+    "ws": "^8.18.3"
   }
 }
